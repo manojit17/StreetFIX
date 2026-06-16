@@ -27,11 +27,42 @@ export default function ReportIssue({ navigate }) {
     setPhotos(urls)
   }
 
-  const handleSubmit = () => {
-    showToast('✅', 'Report Submitted!', 'Your issue has been forwarded to the local authority. Updates via email.')
-    setTimeout(() => navigate('home'), 1200)
-  }
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
+  try {
+    // Pick the correct endpoint based on login or signup tab
+    const endpoint = tab === "login" ? "auth/login" : "auth/register";
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        tab === "login"
+          ? { email: form.email, password: form.password }
+          : { name: form.name, email: form.email, password: form.password }
+      ),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Something went wrong");
+    }
+
+    // Save the token to localStorage so we can use it later
+    localStorage.setItem("streetfix_token", data.token);
+    localStorage.setItem("streetfix_user", JSON.stringify(data.user));
+
+    navigate("/");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
   const sevOptions = [
     { label: 'Low', icon: '🟢' },
     { label: 'Medium', icon: '🟡' },

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -129,3 +128,277 @@ tbody tr:not(:last-child) td { border-bottom:1px solid #f3f4f6; }
 .nav-link { font-family:'Inter',sans-serif; font-weight:500; font-size:0.9rem; color:#6b7280; padding:6px 14px; border-radius:6px; transition:all 0.2s ease; cursor:pointer; border:none; background:none; }
 .nav-link:hover { background:#f3f4f6; color:#1e3a5f; }
 .nav-link.active { color:#1e3a5f; font-weight:600; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE STYLES
+   Breakpoints:
+   mobile  → max-width: 640px
+   tablet  → max-width: 768px
+   desktop → above 768px
+═══════════════════════════════════════════════════════════ */
+
+/* ── HERO SECTION ── */
+/* On mobile stack the two columns into one */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr;   /* single column */
+    gap: 32px;
+    text-align: center;
+  }
+  /* Hide the floating cards on mobile — they overflow and look broken */
+  .hero-cards-col {
+    display: none;
+  }
+  /* Center the hero buttons */
+  .hero-btns {
+    justify-content: center;
+  }
+  /* Center the stats row */
+  .hero-stats {
+    justify-content: center;
+  }
+  /* Smaller hero heading on mobile */
+  .hero-heading {
+    font-size: clamp(1.8rem, 8vw, 2.6rem) !important;
+  }
+}
+
+/* ── FEATURES GRID (3 cols → 1 col on mobile) ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 580px) {
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+/* ── HOW IT WORKS STEPS (4 cols → 2 cols → 1 col) ── */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  position: relative;
+}
+@media (max-width: 768px) {
+  .steps-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Hide the horizontal connector line on mobile */
+  .steps-connector { display: none !important; }
+}
+@media (max-width: 400px) {
+  .steps-grid { grid-template-columns: 1fr; }
+}
+
+/* ── CTA BOX ── */
+@media (max-width: 640px) {
+  .cta-box {
+    padding: 36px 20px !important;
+    border-radius: 12px;
+  }
+  .cta-box h2 { font-size: 1.6rem !important; }
+  .cta-btns {
+    flex-direction: column;
+    align-items: center;
+  }
+  .cta-btns button { width: 100%; justify-content: center; }
+}
+
+/* ── STATS ROW (4 cols → 2 cols on mobile) ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 380px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── DASHBOARD GRID ── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+/* ── QUICK ACTIONS (4 cols → 2 cols on mobile) ── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 768px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── REPORT FORM ── */
+/* Two column form rows become single column on mobile */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  .form-row-2 { grid-template-columns: 1fr; }
+}
+
+/* ── TABLE → hide on mobile, show cards instead ── */
+.desktop-table { display: block; }
+.mobile-cards  { display: none; }
+@media (max-width: 768px) {
+  .desktop-table { display: none; }
+  .mobile-cards  { display: block; }
+}
+
+/* ── NOTIFICATION PANEL ── */
+/* On very small screens make it full width */
+@media (max-width: 400px) {
+  .notif-panel {
+    width: calc(100vw - 32px) !important;
+    right: -60px !important;
+  }
+}
+
+/* ── MODAL ── */
+@media (max-width: 480px) {
+  .modal-box {
+    padding: 24px 18px !important;
+    margin: 12px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ── TOAST ── */
+@media (max-width: 480px) {
+  .toast {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: 100%;
+  }
+}
+
+/* ── MAP PAGE ── */
+/* Map legend smaller on mobile */
+@media (max-width: 480px) {
+  .map-legend {
+    padding: 10px 12px !important;
+    font-size: 0.78rem;
+  }
+  .map-popup {
+    width: 180px !important;
+    padding: 12px !important;
+  }
+}
+
+/* ── FILTER CHIPS — wrap on mobile ── */
+.filter-chips-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;   /* chips wrap to next line instead of overflowing */
+}
+
+/* ── TAB BAR — scrollable on mobile ── */
+@media (max-width: 480px) {
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; padding: 10px 14px; }
+}
+
+/* ── GENERAL CONTAINER PADDING ── */
+/* Less side padding on small screens */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+@media (max-width: 480px) {
+  .page-container { padding: 0 14px; }
+}
+
+/* ── SECTION PADDING ── */
+.section-pad { padding: 72px 0; }
+@media (max-width: 640px) {
+  .section-pad { padding: 48px 0; }
+}
+
+/* ── REPORT ISSUE PAGE ── */
+.report-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .report-layout {
+    grid-template-columns: 1fr;  /* sidebar goes below form on tablet/mobile */
+  }
+}
+
+/* ── HOME PAGE OVERVIEW GRID ── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .overview-grid { grid-template-columns: 1fr; }
+}
+
+/* ── REPORT ROW — stack on mobile ── */
+@media (max-width: 480px) {
+  .report-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* ── BUTTONS full width on very small screens ── */
+@media (max-width: 360px) {
+  .btn-accent,
+  .btn-outline,
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── STAT NUMBER smaller on mobile ── */
+@media (max-width: 480px) {
+  .stat-number { font-size: 1.5rem; }
+}
+
+/* ── FLOAT CARDS hide on tablet too ── */
+@media (max-width: 900px) {
+  .float-card { display: none; }
+}
+
+/* ── NAV LOGO text hide on very small ── */
+@media (max-width: 320px) {
+  .nav-logo-text { display: none; }
+}
+
+/* ── SECTION HEADING SIZE ── */
+@media (max-width: 480px) {
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1rem !important; }
+}
