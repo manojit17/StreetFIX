@@ -1,3 +1,4 @@
+// Dashboard.jsx — fully mobile responsive
 import { useState } from 'react'
 import Badge from '../components/Badge'
 
@@ -30,20 +31,22 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ background:'#f9fafb', borderBottom:'1px solid #e5e7eb', padding:'22px 0' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      {/* ── Header ── */}
+      <div style={{ background:'#f9fafb', borderBottom:'1px solid #e5e7eb', padding:'20px 0' }}>
+        {/* page-container handles responsive padding; flex-wrap lets button drop below on narrow screens */}
+        <div className="page-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
           <div>
-            <h2 style={{ fontSize:'1.5rem' }}>Welcome back, Rahul 👋</h2>
+            <h2 style={{ fontSize:'1.35rem' }}>Welcome back, Rahul 👋</h2>
             <p style={{ fontSize:'0.86rem', color:'#6b7280', marginTop:2 }}>Here's what's happening with your reports today.</p>
           </div>
           <button className="btn-accent" onClick={() => navigate('report')}>+ New Report</button>
         </div>
       </div>
 
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px 48px' }}>
-        {/* Stat cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, margin:'24px 0' }}>
+      <div className="page-container" style={{ paddingBottom:48 }}>
+
+        {/* ── Stat cards — 4 cols → 2 cols → 1 col via stats-grid class ── */}
+        <div className="stats-grid" style={{ margin:'22px 0' }}>
           {[
             { icon:'📝', iconBg:'rgba(30,58,95,0.08)', val:'14', label:'Total Reports', change:'+3 this week', up:true },
             { icon:'✅', iconBg:'rgba(16,185,129,0.08)', val:'8', label:'Resolved', change:'+2 this month', up:true },
@@ -51,9 +54,9 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
             { icon:'⏳', iconBg:'rgba(245,158,11,0.08)', val:'2', label:'Pending', change:'Needs attention', up:false },
           ].map(s => (
             <div key={s.label} className="stat-card">
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
-                <div style={{ width:40, height:40, background:s.iconBg, borderRadius:8, display:'grid', placeItems:'center', fontSize:'1rem' }}>{s.icon}</div>
-                <span style={{ fontSize:'0.72rem', fontWeight:600, padding:'2px 8px', borderRadius:4, background: s.up ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: s.up ? '#065f46' : '#ef4444' }}>{s.change}</span>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+                <div style={{ width:38, height:38, background:s.iconBg, borderRadius:8, display:'grid', placeItems:'center', fontSize:'0.95rem' }}>{s.icon}</div>
+                <span style={{ fontSize:'0.7rem', fontWeight:600, padding:'2px 7px', borderRadius:4, background: s.up ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: s.up ? '#065f46' : '#ef4444' }}>{s.change}</span>
               </div>
               <div className="stat-number">{s.val}</div>
               <div style={{ fontSize:'0.78rem', color:'#6b7280', fontWeight:500, marginTop:2 }}>{s.label}</div>
@@ -61,26 +64,26 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="tab-bar" style={{ marginBottom:24 }}>
+        {/* ── Tabs — scrollable on mobile via tab-bar CSS ── */}
+        <div className="tab-bar" style={{ marginBottom:22 }}>
           {[['overview','Overview'],['myreports','My Reports'],['notifications','Notifications']].map(([id,label]) => (
             <button key={id} className={`tab-btn ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
 
-        {/* ── OVERVIEW TAB ── */}
+        {/* ── OVERVIEW TAB — dashboard-grid: 2 cols → 1 col on mobile ── */}
         {tab === 'overview' && (
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
+          <div className="dashboard-grid">
             <div className="card-static" style={{ overflow:'hidden' }}>
-              <div style={{ padding:'16px 20px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem' }}>Recent Activity</h3>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>Recent Activity</h3>
                 <span className="badge badge-live"><span className="badge-dot" />Live</span>
               </div>
               {ACTIVITY.map((a,i) => (
                 <div key={i} className="activity-item">
                   <div style={{ width:9, height:9, borderRadius:'50%', background:a.dot, flexShrink:0, marginTop:5 }} />
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:'0.86rem', fontWeight:600, marginBottom:1 }}>{a.title}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:'0.85rem', fontWeight:600, marginBottom:1 }}>{a.title}</div>
                     <div style={{ fontSize:'0.78rem', color:'#6b7280' }}>{a.desc}</div>
                   </div>
                   <span style={{ fontSize:'0.72rem', color:'#9ca3af', flexShrink:0 }}>{a.time}</span>
@@ -89,9 +92,9 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              {/* Breakdown */}
-              <div className="card-static" style={{ padding:20 }}>
-                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:14 }}>Issue Breakdown</h3>
+              {/* Issue breakdown */}
+              <div className="card-static" style={{ padding:18 }}>
+                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Issue Breakdown</h3>
                 {[['Potholes','6 reports',43,'#ff6b35'],['Construction','3 reports',21,'#3b82f6'],['Street Lights','3 reports',21,'#f59e0b'],['Waterlogging','2 reports',14,'#10b981']].map(([l,r,pct,c]) => (
                   <div key={l} style={{ marginBottom:11 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.84rem', marginBottom:5 }}>
@@ -101,16 +104,17 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
                   </div>
                 ))}
               </div>
-              {/* Resolution rate */}
-              <div className="card-static" style={{ padding:20 }}>
-                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:14 }}>Resolution Rate</h3>
-                <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                  <div style={{ position:'relative', width:72, height:72, flexShrink:0 }}>
-                    <svg viewBox="0 0 72 72" style={{ transform:'rotate(-90deg)', width:72, height:72 }}>
+
+              {/* Resolution rate — wraps to vertical stack on tiny screens */}
+              <div className="card-static" style={{ padding:18 }}>
+                <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Resolution Rate</h3>
+                <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                  <div style={{ position:'relative', width:68, height:68, flexShrink:0 }}>
+                    <svg viewBox="0 0 72 72" style={{ transform:'rotate(-90deg)', width:68, height:68 }}>
                       <circle cx="36" cy="36" r="28" fill="none" stroke="#e5e7eb" strokeWidth="8"/>
                       <circle cx="36" cy="36" r="28" fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray="176" strokeDashoffset="47" strokeLinecap="round"/>
                     </svg>
-                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'0.95rem', color:'#1e3a5f' }}>73%</div>
+                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'0.9rem', color:'#1e3a5f' }}>73%</div>
                   </div>
                   <div>
                     <p style={{ fontSize:'0.82rem', color:'#6b7280', marginBottom:8 }}>8 of 14 issues resolved</p>
@@ -125,11 +129,14 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
         {/* ── MY REPORTS TAB ── */}
         {tab === 'myreports' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
-            <div style={{ padding:'16px 20px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem' }}>My Reports (14)</h3>
-              <input className="form-input" style={{ width:210 }} placeholder="🔍 Search reports..." />
+            {/* Header wraps on mobile, search box shrinks to full width */}
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10 }}>
+              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>My Reports (14)</h3>
+              <input className="form-input" style={{ width:210, maxWidth:'100%' }} placeholder="🔍 Search reports..." />
             </div>
-            <div style={{ overflowX:'auto' }}>
+
+            {/* DESKTOP TABLE — hidden below 768px via desktop-table class */}
+            <div className="desktop-table" style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead>
                   <tr>
@@ -162,20 +169,43 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
                 </tbody>
               </table>
             </div>
+
+            {/* MOBILE CARDS — hidden above 768px via mobile-cards class */}
+            <div className="mobile-cards">
+              {REPORTS.map((r,i) => (
+                <div key={i} style={{ padding:16, borderBottom: i < REPORTS.length-1 ? '1px solid #f3f4f6' : 'none' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{r.type}</div>
+                      <div style={{ fontSize:'0.76rem', color:'#9ca3af' }}>Severity: {r.sev}</div>
+                    </div>
+                    <Badge status={r.status} />
+                  </div>
+                  <div style={{ fontSize:'0.84rem', marginBottom:2 }}>{r.loc}</div>
+                  <div style={{ fontSize:'0.78rem', color:'#6b7280', marginBottom:10 }}>{r.city} · {r.date}</div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button className="btn-outline btn-sm" style={{ flex:1, justifyContent:'center' }}>View</button>
+                    {r.status === 'Pending' && (
+                      <button className="btn-danger" style={{ flex:1, justifyContent:'center' }}>Delete</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* ── NOTIFICATIONS TAB ── */}
         {tab === 'notifications' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
-            <div style={{ padding:'16px 20px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem' }}>All Notifications</h3>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
+              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>All Notifications</h3>
               <button className="nav-link btn-sm" style={{ fontSize:'0.8rem' }}>Mark all read</button>
             </div>
             {NOTIFS.map((n,i) => (
               <div key={i} className="activity-item" style={{ background: n.unread ? 'rgba(30,58,95,0.02)' : 'transparent' }}>
                 <div style={{ width:9, height:9, borderRadius:'50%', background:n.dot, flexShrink:0, marginTop:5 }} />
-                <div style={{ flex:1 }}>
+                <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:'0.86rem', fontWeight:600, marginBottom:2 }}>{n.title}</div>
                   <div style={{ fontSize:'0.78rem', color:'#6b7280' }}>{n.desc}</div>
                 </div>

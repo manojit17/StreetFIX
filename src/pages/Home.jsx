@@ -1,3 +1,4 @@
+// Home.jsx — fully mobile responsive
 import Badge from '../components/Badge'
 
 const RECENT = [
@@ -10,21 +11,24 @@ const RECENT = [
 export default function Home({ navigate }) {
   return (
     <div>
-      {/* Hero bar */}
-      <div style={{ background:'linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)', borderBottom:'1px solid #e5e7eb', padding:'36px 0 28px' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16 }}>
+      {/* ── Hero bar ── */}
+      <div style={{ background:'linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)', borderBottom:'1px solid #e5e7eb', padding:'32px 0 24px' }}>
+        {/* page-container handles responsive side padding */}
+        <div className="page-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16 }}>
           <div>
             <span className="badge badge-live" style={{ marginBottom:8, display:'inline-flex' }}><span className="badge-dot" />Live Updates</span>
-            <h1 style={{ fontSize:'1.9rem', color:'#ffffff', marginBottom:4 }}>Your City Dashboard</h1>
-            <p style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.9rem' }}>Monitor road conditions and active reports in real time.</p>
+            <h1 style={{ fontSize:'1.7rem', color:'#ffffff', marginBottom:4 }}>Your City Dashboard</h1>
+            <p style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.88rem' }}>Monitor road conditions and active reports in real time.</p>
           </div>
+          {/* Button takes full width on very small screens via CSS */}
           <button className="btn-accent" onClick={() => navigate('report')}>+ Report New Issue</button>
         </div>
       </div>
 
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'28px 24px 48px' }}>
-        {/* Quick Actions */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:28 }}>
+      <div className="page-container" style={{ paddingTop:24, paddingBottom:48 }}>
+
+        {/* ── Quick Actions — 4 cols → 2 cols on mobile via CSS class ── */}
+        <div className="quick-actions-grid" style={{ marginBottom:24 }}>
           {[
             { icon:'📝', iconBg:'rgba(30,58,95,0.08)', label:'Report Issue', page:'report' },
             { icon:'🗺️', iconBg:'rgba(59,130,246,0.08)', label:'Issue Map', page:'map' },
@@ -38,15 +42,18 @@ export default function Home({ navigate }) {
           ))}
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
-          {/* Recent Reports */}
+        {/* ── Main content — 2 cols → 1 col on mobile via overview-grid class ── */}
+        <div className="overview-grid">
+
+          {/* LEFT — Recent Reports */}
           <div>
             <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'1rem', marginBottom:12 }}>Recent Reports Near You</h3>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {RECENT.map(r => (
+                /* report-row stacks vertically on screens below 480px via CSS */
                 <div key={r.title} className="report-row">
                   <div style={{ width:44, height:44, background:r.iconBg, borderRadius:10, display:'grid', placeItems:'center', fontSize:'1.15rem', flexShrink:0 }}>{r.icon}</div>
-                  <div style={{ flex:1 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:'0.9rem', fontWeight:600, marginBottom:2 }}>{r.title}</div>
                     <div style={{ fontSize:'0.78rem', color:'#6b7280' }}>{r.loc}</div>
                     <div className="progress-wrap" style={{ marginTop:6 }}>
@@ -62,19 +69,22 @@ export default function Home({ navigate }) {
             </div>
           </div>
 
+          {/* RIGHT — City stats + Trending */}
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            {/* City stats */}
+
+            {/* City-wide stats — inner grid shrinks to 1 col on very small screens */}
             <div className="card-static" style={{ padding:20 }}>
               <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:14 }}>City-Wide Status</h3>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div className="stats-grid" style={{ gridTemplateColumns:'1fr 1fr' }}>
                 {[['142','#f59e0b','Pending'],['89','#3b82f6','In Progress'],['1,124','#10b981','Resolved'],['2,441','#1e3a5f','Total']].map(([n,c,l]) => (
                   <div key={l} style={{ background:'#f9fafb', borderRadius:8, padding:14, textAlign:'center' }}>
-                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.5rem', color:c }}>{n}</div>
+                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.4rem', color:c }}>{n}</div>
                     <div style={{ fontSize:'0.72rem', color:'#6b7280', marginTop:2 }}>{l}</div>
                   </div>
                 ))}
               </div>
             </div>
+
             {/* Trending */}
             <div className="card-static" style={{ padding:20 }}>
               <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:12 }}>🔥 Trending Issues</h3>
