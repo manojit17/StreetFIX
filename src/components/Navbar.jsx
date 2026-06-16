@@ -1,5 +1,11 @@
-import { useState } from 'react'
-import { Bell, Menu, X, MapPin } from 'lucide-react'
+// Navbar.jsx — fully mobile responsive
+// FIXED: removed reliance on Tailwind's "hidden md:flex" classes since they
+// were being overridden by an inline style. Now uses a JS-based screen
+// width check (useIsMobile hook below) so visibility is 100% reliable
+// regardless of any CSS conflicts in the project.
+
+import { useState, useEffect } from 'react'
+import { Bell, Menu, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import AuthModal from './AuthModal'
 
@@ -10,11 +16,27 @@ const NOTIFS = [
   { id:4, dot:'#9ca3af', title:'3 new issues near you', msg:'Citizens reported nearby problems', time:'2d ago', unread:false },
 ]
 
+// ── Custom hook: returns true if screen width is below 768px ──
+// This replaces Tailwind's "hidden md:flex" classes which were
+// unreliable due to inline style conflicts. Pure JS = always works.
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < breakpoint)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [breakpoint])
+
+  return isMobile
+}
+
 export default function Navbar({ currentPage, setCurrentPage }) {
   const { isLoggedIn, setIsLoggedIn, showToast } = useApp()
-  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifOpen, setNotifOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [authModal, setAuthModal] = useState(null)
+  const [authModal, setAuthModal]   = useState(null)
+  const isMobile = useIsMobile(768) // true when screen width < 768px
 
   const links = [
     { id:'landing', label:'Home' },
@@ -24,7 +46,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
     { id:'map', label:'Issue Map' },
   ]
 
-  const navigate = (page) => { setCurrentPage(page); setMobileOpen(false) }
+  const navigate = (page) => { setCurrentPage(page); setMobileOpen(false); setNotifOpen(false) }
 
   const logout = () => {
     setIsLoggedIn(false)
@@ -34,42 +56,69 @@ export default function Navbar({ currentPage, setCurrentPage }) {
 
   return (
     <>
-      <nav style={{ background:'#ffffff', borderBottom:'1px solid #e5e7eb', position:'fixed', top:0, left:0, right:0, zIndex:50, height:64, display:'flex', alignItems:'center', padding:'0 24px', boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
-        <div style={{ display:'flex', alignItems:'center', width:'100%', maxWidth:1200, margin:'0 auto', gap:0 }}>
-          {/* Logo */}
-          <div onClick={() => navigate('landing')} style={{ display:'flex', alignItems:'center', gap:8, fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.15rem', cursor:'pointer', marginRight:24, flexShrink:0 }}>
-            <div style={{ width:34, height:34, background:'#1e3a5f', borderRadius:8, display:'grid', placeItems:'center', fontSize:'1rem', color:'white' }}>🛣️</div>
-            <span>Street<span style={{ color:'#ff6b35' }}>Fix</span></span>
+      <nav style={{
+        background:'#ffffff', borderBottom:'1px solid #e5e7eb', position:'fixed',
+        top:0, left:0, right:0, zIndex:50, height:64, display:'flex', alignItems:'center',
+        boxShadow:'0 1px 3px rgba(0,0,0,0.08)'
+      }}>
+        <div style={{
+          display:'flex', alignItems:'center', width:'100%', maxWidth:1200,
+          margin:'0 auto', padding: isMobile ? '0 14px' : '0 24px', gap:0
+        }}>
+
+          {/* ── Logo ── */}
+          <div
+            onClick={() => navigate('landing')}
+            style={{ display:'flex', alignItems:'center', gap:8, fontFamily:'Poppins,sans-serif',
+                     fontWeight:700, fontSize:'1.1rem', cursor:'pointer', marginRight:'auto', flexShrink:0 }}
+          >
+            <div style={{ width:34, height:34, background:'#1e3a5f', borderRadius:8,
+                         display:'grid', placeItems:'center', fontSize:'1rem', color:'white', flexShrink:0 }}>
+              🛣️
+            </div>
+            {/* Hide logo text only on extremely narrow screens */}
+            {window.innerWidth > 320 && (
+              <span>Street<span style={{ color:'#ff6b35' }}>Fix</span></span>
+            )}
           </div>
 
-          {/* Desktop Nav */}
-          <div style={{ display:'flex', gap:2, flex:1 }} className="hidden md:flex">
-            {links.map(l => (
-              <button key={l.id} className={`nav-link ${currentPage === l.id ? 'active' : ''}`} onClick={() => navigate(l.id)}>
-                {l.label}
-              </button>
-            ))}
-          </div>
+          {/* ── Desktop Nav Links — controlled by JS, NOT Tailwind classes ── */}
+          {!isMobile && (
+            <div style={{ display:'flex', gap:2 }}>
+              {links.map(l => (
+                <button key={l.id} className={`nav-link ${currentPage === l.id ? 'active' : ''}`} onClick={() => navigate(l.id)}>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Right */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginLeft:'auto', position:'relative' }}>
+          {/* ── Right side controls ── */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:16, position:'relative', flexShrink:0 }}>
+
+            {/* Notification bell */}
             <div style={{ position:'relative', display:'flex' }}>
-              <button onClick={() => setNotifOpen(!notifOpen)} style={{ width:36, height:36, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, display:'grid', placeItems:'center', cursor:'pointer', position:'relative', transition:'all 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor='#1e3a5f'}
-                onMouseLeave={e => e.currentTarget.style.borderColor='#e5e7eb'}>
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                style={{ width:36, height:36, background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8,
+                         display:'grid', placeItems:'center', cursor:'pointer', position:'relative', flexShrink:0 }}
+              >
                 <Bell size={16} color="#1f2937" />
                 <div style={{ position:'absolute', top:6, right:6, width:7, height:7, background:'#ef4444', borderRadius:'50%' }} />
               </button>
+
               {notifOpen && (
-                <div className="notif-panel">
+                <div
+                  className="notif-panel"
+                  style={ isMobile ? { width:'calc(100vw - 32px)', right:-50 } : undefined }
+                >
                   <div style={{ padding:'13px 16px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <h4 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>Notifications</h4>
                     <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }}>Mark all read</button>
                   </div>
                   {NOTIFS.map(n => (
-                    <div key={n.id} style={{ padding:'11px 16px', borderBottom:'1px solid #f3f4f6', display:'flex', gap:10, background: n.unread ? 'rgba(30,58,95,0.02)' : '#fff', cursor:'pointer', transition:'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background='#f9fafb'}
-                      onMouseLeave={e => e.currentTarget.style.background = n.unread ? 'rgba(30,58,95,0.02)' : '#fff'}>
+                    <div key={n.id} style={{ padding:'11px 16px', borderBottom:'1px solid #f3f4f6', display:'flex', gap:10,
+                                            background: n.unread ? 'rgba(30,58,95,0.02)' : '#fff', cursor:'pointer' }}>
                       <div style={{ width:7, height:7, borderRadius:'50%', background:n.dot, flexShrink:0, marginTop:5 }} />
                       <div>
                         <div style={{ fontSize:'0.82rem', fontWeight:600, marginBottom:1 }}>{n.title}</div>
@@ -82,42 +131,83 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               )}
             </div>
 
+            {/* Auth area — controlled by JS, NOT Tailwind classes */}
             {isLoggedIn ? (
               <>
-                <div style={{ width:36, height:36, background:'#1e3a5f', borderRadius:'50%', display:'grid', placeItems:'center', fontSize:'0.74rem', fontWeight:700, color:'white', cursor:'pointer', flexShrink:0 }}>RJ</div>
-                <button className="nav-link btn-sm" onClick={logout}>Logout</button>
+                <div style={{ width:36, height:36, background:'#1e3a5f', borderRadius:'50%', display:'grid',
+                             placeItems:'center', fontSize:'0.74rem', fontWeight:700, color:'white', flexShrink:0 }}>
+                  RJ
+                </div>
+                {!isMobile && (
+                  <button className="nav-link btn-sm" onClick={logout}>Logout</button>
+                )}
               </>
             ) : (
               <>
-                <button className="btn-outline btn-sm hidden md:flex" onClick={() => setAuthModal('login')}>Sign In</button>
-                <button className="btn-accent btn-sm" onClick={() => setAuthModal('signup')}>Get Started</button>
+                {!isMobile && (
+                  <button className="btn-outline btn-sm" onClick={() => setAuthModal('login')}>Sign In</button>
+                )}
+                <button className="btn-accent btn-sm" onClick={() => setAuthModal('signup')}>
+                  {isMobile ? 'Start' : 'Get Started'}
+                </button>
               </>
             )}
 
-            {/* Hamburger */}
-            <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:4 }} className="md:hidden">
-              {mobileOpen ? <X size={22} color="#1f2937" /> : <Menu size={22} color="#1f2937" />}
-            </button>
+            {/* Hamburger — only renders when isMobile is true (JS-controlled) */}
+            {isMobile && (
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:4, flexShrink:0 }}
+              >
+                {mobileOpen ? <X size={22} color="#1f2937" /> : <Menu size={22} color="#1f2937" />}
+              </button>
+            )}
           </div>
         </div>
       </nav>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div style={{ position:'fixed', top:64, left:0, right:0, background:'#ffffff', borderBottom:'1px solid #e5e7eb', zIndex:49, padding:16, boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}>
+      {/* ── Mobile dropdown menu — only renders when isMobile AND mobileOpen are true ── */}
+      {isMobile && mobileOpen && (
+        <div style={{
+          position:'fixed', top:64, left:0, right:0, background:'#ffffff',
+          borderBottom:'1px solid #e5e7eb', zIndex:49, padding:16,
+          boxShadow:'0 4px 12px rgba(0,0,0,0.08)',
+          maxHeight:'calc(100vh - 64px)', overflowY:'auto'
+        }}>
           {links.map(l => (
-            <button key={l.id} className={`nav-link ${currentPage === l.id ? 'active' : ''}`} style={{ display:'block', width:'100%', textAlign:'left', marginBottom:4 }} onClick={() => navigate(l.id)}>
+            <button
+              key={l.id}
+              className={`nav-link ${currentPage === l.id ? 'active' : ''}`}
+              style={{ display:'block', width:'100%', textAlign:'left', marginBottom:4, padding:'10px 14px' }}
+              onClick={() => navigate(l.id)}
+            >
               {l.label}
             </button>
           ))}
-          <div style={{ display:'flex', gap:10, marginTop:12 }}>
-            <button className="btn-outline" style={{ flex:1, justifyContent:'center' }} onClick={() => { setAuthModal('login'); setMobileOpen(false) }}>Sign In</button>
-            <button className="btn-accent" style={{ flex:1, justifyContent:'center' }} onClick={() => { setAuthModal('signup'); setMobileOpen(false) }}>Get Started</button>
-          </div>
+
+          {isLoggedIn ? (
+            <button
+              className="btn-outline"
+              style={{ width:'100%', justifyContent:'center', marginTop:10 }}
+              onClick={() => { logout(); setMobileOpen(false) }}
+            >
+              Logout
+            </button>
+          ) : (
+            <div style={{ display:'flex', gap:10, marginTop:12 }}>
+              <button className="btn-outline" style={{ flex:1, justifyContent:'center' }}
+                onClick={() => { setAuthModal('login'); setMobileOpen(false) }}>
+                Sign In
+              </button>
+              <button className="btn-accent" style={{ flex:1, justifyContent:'center' }}
+                onClick={() => { setAuthModal('signup'); setMobileOpen(false) }}>
+                Get Started
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Close notif on outside click */}
       {notifOpen && <div style={{ position:'fixed', inset:0, zIndex:49 }} onClick={() => setNotifOpen(false)} />}
 
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} onSwitch={setAuthModal} />}
