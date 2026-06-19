@@ -9,7 +9,7 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
   const handleLogin = () => {
     onClose()
     setIsLoggedIn(true)
-    showToast('✅', 'Welcome back, Rahul!', 'You are now signed in to StreetFix.')
+    showToast('✅', 'Welcome back,', 'You are now signed in to StreetFix.')
   }
   const handleSignup = () => {
     onClose()
