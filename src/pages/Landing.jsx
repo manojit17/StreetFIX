@@ -44,7 +44,7 @@ export default function Landing({ navigate }) {
     }
     setLoading(true); setError('')
     try {
-      const endpoint = tab === 'login' ? 'auth/login' : 'auth/register'
+      const endpoint = tab === 'login'  ? 'api/auth/login' : 'api/auth/register'
       const body     = tab === 'login'
         ? { email: form.email, password: form.password }
         : { name: form.name, email: form.email, password: form.password }
