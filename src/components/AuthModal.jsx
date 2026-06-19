@@ -40,7 +40,7 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
     setLoading(true); setError('')
     const fullName = `${form.firstName} ${form.lastName}`.trim()
     try {
-      const res  = await fetch('https://streetfix-backend-1j59.onrender.com/api/auth/register', {
+      const res  = await fetch('https://streetfix-backend-1u4c.onrender.com/api/auth/register', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ name: fullName, email: form.email, password: form.password }),
       })
