@@ -24,7 +24,7 @@ export default function Landing({ navigate }) {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [form, setForm] = useState({ name:'', email:'', password:'', confirmPassword:'' })
-  const { login, showToast } = useApp()
+  const { saveAuth, showToast } = useApp()
 
   const setField = (key, val) => { setForm(f => ({ ...f, [key]: val })); setError('') }
   const openModal = (t = 'login') => {
@@ -53,7 +53,7 @@ export default function Landing({ navigate }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Something went wrong')
-      login(data.user, data.token)
+      saveAuth(data.token, data.user)
       setShowModal(false)
       showToast(tab === 'login' ? '👋' : '🎉',
                 tab === 'login' ? 'Welcome back!' : 'Account created!',
