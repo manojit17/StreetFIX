@@ -3,27 +3,39 @@ import { useApp } from '../context/AppContext'
 import { X } from 'lucide-react'
 
 export default function AuthModal({ mode, onClose, onSwitch }) {
-  // 1. Get auth states and toast function
+
   const { setIsLoggedIn, showToast } = useApp()
-  
-  // 2. Form state
+
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')   // ← shows error inside modal, not alert()
 
-  // 3. Helper to update form fields
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
+    setError('') // clear error when user types
   }
 
-  // 4. Handle Login API Call
+  // ── LOGIN ─────────────────────────────────────────────────────
   const handleLogin = async () => {
+
+    // Validate before hitting API
+    if (!form.email || !form.password) {
+      setError('Please enter both email and password')
+      return
+    }
+
     setLoading(true)
+    setError('')
+
     try {
       const response = await fetch('https://streetfix-backend-1j59.onrender.com/api/auth/login', {
-        method: 'POST',
+        method : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, password: form.password })
+        body   : JSON.stringify({
+          email   : form.email,
+          password: form.password,
+        }),
       })
 
       const data = await response.json()
@@ -32,38 +44,53 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
         throw new Error(data.message || 'Login failed')
       }
 
-      // Save token/user info if your backend sends it
+      // Save token + user to localStorage
       if (data.token) {
-        localStorage.setItem('token', data.token)
+        localStorage.setItem('sf-token', data.token)
+        localStorage.setItem('sf-user', JSON.stringify(data.user))
       }
 
       setIsLoggedIn(true)
       onClose()
-      
-      // Safe check for showToast
-      if (typeof showToast === 'function') {
-        showToast('✅', 'Welcome back,', 'You are now signed in to StreetFix.')
-      }
+      showToast('✅', `Welcome back, ${data.user?.name || ''}!`, 'You are now signed in to StreetFix.')
+
     } catch (err) {
-      alert(err.message) // Replace with a safe error state/toast if needed
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  // 5. Handle Signup API Call
+  // ── SIGNUP ────────────────────────────────────────────────────
   const handleSignup = async () => {
+
+    // Validate before hitting API
+    if (!form.firstName || !form.email || !form.password) {
+      setError('Please fill in First Name, Email, and Password')
+      return
+    }
+
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
+    setError('')
+
+    // ✅ KEY FIX: backend expects "name" not "firstName"+"lastName"
+    // Your User model has: name: { type: String, required: true }
+    const fullName = `${form.firstName} ${form.lastName}`.trim()
+
     try {
       const response = await fetch('https://streetfix-backend-1j59.onrender.com/api/auth/register', {
-        method: 'POST',
+        method : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          password: form.password
-        })
+        body   : JSON.stringify({
+          name    : fullName,      // ✅ matches backend User model field
+          email   : form.email,
+          password: form.password,
+        }),
       })
 
       const data = await response.json()
@@ -72,15 +99,18 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
         throw new Error(data.message || 'Registration failed')
       }
 
+      // Save token + user to localStorage
+      if (data.token) {
+        localStorage.setItem('sf-token', data.token)
+        localStorage.setItem('sf-user', JSON.stringify(data.user))
+      }
+
       setIsLoggedIn(true)
       onClose()
+      showToast('🎉', 'Account Created!', `Welcome to StreetFix, ${data.user?.name || ''}!`)
 
-      // Safe check for showToast
-      if (typeof showToast === 'function') {
-        showToast('🎉', 'Account Created!', 'Welcome to StreetFix. Start reporting issues!')
-      }
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -89,10 +119,16 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-box">
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:16, background:'none', border:'none', cursor:'pointer', color:'#6b7280' }}>
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{ position:'absolute', top:14, right:16, background:'none', border:'none', cursor:'pointer', color:'#6b7280' }}
+        >
           <X size={20} />
         </button>
-        {/* Logo */}
+
+        {/* Logo + Title */}
         <div style={{ textAlign:'center', marginBottom:22 }}>
           <div style={{ width:48, height:48, background:'#1e3a5f', borderRadius:10, display:'grid', placeItems:'center', margin:'0 auto 12px', fontSize:'1.4rem' }}>
             🛣️
@@ -105,68 +141,104 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
           </p>
         </div>
 
+        {/* ── Error box — inside modal instead of browser alert() ── */}
+        {error && (
+          <div style={{
+            background  : 'rgba(239,68,68,0.08)',
+            border      : '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 8,
+            padding     : '10px 14px',
+            marginBottom: 14,
+            fontSize    : '0.84rem',
+            color       : '#ef4444',
+            display     : 'flex',
+            alignItems  : 'center',
+            gap         : 8,
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* ── Form Fields ── */}
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+          {/* First + Last name — signup only */}
           {mode === 'signup' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <label className="form-label">First Name</label>
-                <input 
-                  className="form-input" 
+                <label className="form-label">First Name *</label>
+                <input
+                  className="form-input"
                   name="firstName"
                   value={form.firstName}
                   onChange={handleChange}
-                  placeholder="Rahul" 
+                  placeholder="Rahul"
                 />
               </div>
               <div>
                 <label className="form-label">Last Name</label>
-                <input 
-                  className="form-input" 
+                <input
+                  className="form-input"
                   name="lastName"
                   value={form.lastName}
                   onChange={handleChange}
-                  placeholder="Joshi" 
+                  placeholder="Joshi"
                 />
               </div>
             </div>
           )}
+
+          {/* Email */}
           <div>
-            <label className="form-label">Email Address</label>
-            <input 
-              className="form-input" 
-              type="email" 
+            <label className="form-label">Email Address *</label>
+            <input
+              className="form-input"
+              type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="rahul@email.com" 
+              placeholder="rahul@email.com"
             />
           </div>
+
+          {/* Password */}
           <div>
-            <label className="form-label">Password</label>
-            <input 
-              className="form-input" 
-              type="password" 
+            <label className="form-label">Password *</label>
+            <input
+              className="form-input"
+              type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="••••••••" 
+              placeholder="Min 6 characters"
             />
           </div>
-          <button 
-            className="btn-primary" 
-            style={{ width:'100%', justifyContent:'center' }} 
+
+          {/* Submit button */}
+          <button
+            className="btn-accent"
+            style={{ width:'100%', justifyContent:'center', opacity: loading ? 0.75 : 1 }}
             onClick={mode === 'login' ? handleLogin : handleSignup}
             disabled={loading}
           >
-            {loading ? 'Processing...' : mode === 'login' ? 'Sign In →' : 'Create Account →'}
+            {loading
+              ? '⏳ Please wait...'
+              : mode === 'login' ? 'Sign In →' : 'Create Account →'
+            }
           </button>
         </div>
+
+        {/* Switch mode link */}
         <p style={{ textAlign:'center', marginTop:16, fontSize:'0.84rem', color:'#6b7280' }}>
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <span style={{ color:'#ff6b35', cursor:'pointer', fontWeight:600 }} onClick={() => onSwitch(mode === 'login' ? 'signup' : 'login')}>
+          <span
+            style={{ color:'#ff6b35', cursor:'pointer', fontWeight:600 }}
+            onClick={() => { onSwitch(mode === 'login' ? 'signup' : 'login'); setError('') }}
+          >
             {mode === 'login' ? 'Create one free' : 'Sign in'}
           </span>
         </p>
+
       </div>
     </div>
   )
