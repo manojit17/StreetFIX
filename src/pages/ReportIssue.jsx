@@ -1,25 +1,31 @@
-// ReportIssue.jsx — fully mobile responsive + connected to real backend
+// ReportIssue.jsx — FIXED: now reads the token from AppContext (useApp)
+// instead of guessing a localStorage key name directly.
 //
-// NOTE: Your original handleSubmit had code copied from the Landing page
-// (it referenced "tab", "form", "setLoading", "setError" which don't exist
-// here). I replaced it with a real handleSubmit that sends this form's
-// actual fields to your backend.
+// BUG THAT WAS HERE:
+//   Landing.jsx saves the token via saveAuth() into localStorage under
+//   the key "sf-token" (see AppContext.jsx).
+//   This file was checking localStorage.getItem('streetfix_token') —
+//   a key that never existed — so it always thought the user was
+//   logged out, even right after a successful login.
+//
+// FIX:
+//   Pull the token directly from useApp() context, which already reads
+//   "sf-token" correctly on app startup and keeps it in sync.
 
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { MapPin } from 'lucide-react'
 
 export default function ReportIssue({ navigate }) {
-  const { showToast } = useApp()
+  const { showToast, isLoggedIn, user } = useApp()
 
   const [severity, setSeverity]   = useState('Medium')
-  const [photos,   setPhotos]     = useState([])      // preview URLs only
-  const [photoFiles, setPhotoFiles] = useState([])    // actual File objects to upload
+  const [photos,   setPhotos]     = useState([])
+  const [photoFiles, setPhotoFiles] = useState([])
   const [road,     setRoad]       = useState('')
   const [city,     setCity]       = useState('')
   const [detecting, setDetecting] = useState(false)
 
-  // New form fields needed by the backend
   const [issueType,   setIssueType]   = useState('')
   const [title,       setTitle]       = useState('')
   const [description, setDescription] = useState('')
@@ -29,7 +35,6 @@ export default function ReportIssue({ navigate }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  // ── Detect GPS location using the browser's built-in geolocation ──
   const detectLocation = () => {
     setDetecting(true)
     setRoad('Detecting...')
@@ -58,7 +63,6 @@ export default function ReportIssue({ navigate }) {
     )
   }
 
-  // ── Handle photo file selection ──
   const handleFiles = (e) => {
     const files = Array.from(e.target.files).slice(0, 5)
     const urls  = files.map(f => URL.createObjectURL(f))
@@ -66,12 +70,17 @@ export default function ReportIssue({ navigate }) {
     setPhotoFiles(files)
   }
 
-  // ── Submit the report to the real backend ──
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    // Basic validation
+    // ── FIXED: check isLoggedIn from context, not a guessed localStorage key ──
+    if (!isLoggedIn) {
+      setError('Please login first to submit a report.')
+      showToast('🔒', 'Login Required', 'Please sign in before submitting a report.')
+      return
+    }
+
     if (!issueType)           { setError('Please select an issue type.');        return }
     if (!title)                { setError('Please enter an issue title.');        return }
     if (!description || description.length < 10) {
@@ -81,14 +90,15 @@ export default function ReportIssue({ navigate }) {
     setLoading(true)
 
     try {
-      const token = localStorage.getItem('streetfix_token')
+      // ── FIXED: read the token using the SAME key AppContext actually uses ──
+      const token = localStorage.getItem('sf-token')
+
       if (!token) {
-        setError('Please login first to submit a report.')
+        setError('Your session expired. Please login again.')
         setLoading(false)
         return
       }
 
-      // FormData because we may include an image file
       const formData = new FormData()
       formData.append('title',       title)
       formData.append('description', description)
@@ -97,14 +107,12 @@ export default function ReportIssue({ navigate }) {
       formData.append('latitude',    latitude)
       formData.append('longitude',   longitude)
       if (photoFiles[0]) {
-        formData.append('image', photoFiles[0]) // backend accepts one image per report
+        formData.append('image', photoFiles[0])
       }
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/reports`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-        // Do NOT set Content-Type — the browser sets the correct
-        // multipart boundary automatically for FormData
         body: formData,
       })
 
@@ -128,11 +136,27 @@ export default function ReportIssue({ navigate }) {
     { label: 'Critical', icon: '🚨' },
   ]
 
+  // ── NEW: If user isn't logged in, show a clear prompt instead of a
+  //         broken form they can't actually submit ──
+  if (!isLoggedIn) {
+    return (
+      <div className="page-container" style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60, textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 16 }}>🔒</div>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: 10 }}>Login Required</h2>
+        <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: 24 }}>
+          You need to be signed in to report a road issue. It only takes a few seconds to create an account.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn-accent" onClick={() => navigate('landing')}>Sign In / Sign Up</button>
+          <button className="btn-outline" onClick={() => navigate('home')}>Go Back Home</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    // page-container handles responsive side padding; maxWidth caps it on desktop
     <div className="page-container" style={{ maxWidth: 720, paddingTop: 32, paddingBottom: 60 }}>
 
-      {/* ── Page header ── */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 1.9rem)', marginBottom: 5 }}>📝 Report an Issue</h1>
         <p style={{ color: '#6b7280', fontSize: '0.88rem' }}>
@@ -140,7 +164,6 @@ export default function ReportIssue({ navigate }) {
         </p>
       </div>
 
-      {/* ── Error banner ── */}
       {error && (
         <div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#dc2626',
                       borderRadius:8, padding:'10px 14px', fontSize:'0.84rem', marginBottom:16 }}>
@@ -150,7 +173,6 @@ export default function ReportIssue({ navigate }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* ── Issue Details ── */}
         <div className="card-static" style={{ padding: 22 }}>
           <SectionTitle>Issue Details</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -194,7 +216,6 @@ export default function ReportIssue({ navigate }) {
           </div>
         </div>
 
-        {/* ── Severity — wraps on very small screens via CSS ── */}
         <div className="card-static" style={{ padding: 22 }}>
           <SectionTitle>Severity Level</SectionTitle>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -213,12 +234,9 @@ export default function ReportIssue({ navigate }) {
           </div>
         </div>
 
-        {/* ── Location ── */}
         <div className="card-static" style={{ padding: 22 }}>
           <SectionTitle>Location</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            {/* Detect button — stacks nicely on mobile since it's already flex+wrap friendly */}
             <div
               onClick={detectLocation}
               style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '13px 16px',
@@ -240,7 +258,6 @@ export default function ReportIssue({ navigate }) {
               </p>
             )}
 
-            {/* form-row-2 class collapses to 1 column below 640px */}
             <div className="form-row-2">
               <div>
                 <label className="form-label">Road / Street</label>
@@ -272,7 +289,6 @@ export default function ReportIssue({ navigate }) {
           </div>
         </div>
 
-        {/* ── Photo Evidence ── */}
         <div className="card-static" style={{ padding: 22 }}>
           <SectionTitle>Photo Evidence</SectionTitle>
           <div className="upload-area" onClick={() => document.getElementById('file-input').click()}>
@@ -294,13 +310,13 @@ export default function ReportIssue({ navigate }) {
           )}
         </div>
 
-        {/* ── Contact ── */}
         <div className="card-static" style={{ padding: 22 }}>
           <SectionTitle>Contact (Optional)</SectionTitle>
           <div className="form-row-2" style={{ marginBottom: 12 }}>
             <div>
               <label className="form-label">Your Name</label>
-              <input className="form-input" placeholder="Rahul Joshi" />
+              {/* NEW: pre-filled with the logged-in user's name from context */}
+              <input className="form-input" placeholder="Your name" defaultValue={user?.name || ''} />
             </div>
             <div>
               <label className="form-label">Phone Number</label>
@@ -313,7 +329,6 @@ export default function ReportIssue({ navigate }) {
           </div>
         </div>
 
-        {/* ── Submit Row — buttons stack full-width on very small screens via CSS ── */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, paddingTop: 4, flexWrap: 'wrap' }}>
           <button className="btn-outline" onClick={() => navigate('home')} type="button">Cancel</button>
           <button className="btn-accent" onClick={handleSubmit} disabled={loading} type="button">
