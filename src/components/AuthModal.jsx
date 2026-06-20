@@ -2,9 +2,27 @@ import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { X } from 'lucide-react'
 
+// ── FIX ──────────────────────────────────────────────────────
+// This file previously had the backend URL HARDCODED in two
+// different places, with two DIFFERENT values:
+//   handleLogin  → "https://streetfix-backend-1j59.onrender.com" (OLD, dead)
+//   handleSignup → "https://streetfix-backend-1u4c.onrender.com" (current)
+//
+// Neither one read from your .env file at all, which is why
+// changing VITE_API_URL on Vercel never fixed login no matter
+// how many times it was redeployed — this file simply never
+// looked at that variable.
+//
+// Now both functions use the SAME single source of truth:
+// import.meta.env.VITE_API_URL — exactly like Landing.jsx does.
+// If you ever need to change the backend URL again, you only
+// ever need to update it in ONE place: Vercel's environment
+// variable. No file will ever need manual editing again.
+
+const API_URL = import.meta.env.VITE_API_URL
+
 export default function AuthModal({ mode, onClose, onSwitch }) {
 
-  // ✅ Pull saveAuth + showToast from context
   const { saveAuth, showToast } = useApp()
 
   const [form, setForm] = useState({ firstName:'', lastName:'', email:'', password:'' })
@@ -21,7 +39,8 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
     if (!form.email || !form.password) { setError('Please enter both email and password'); return }
     setLoading(true); setError('')
     try {
-      const res  = await fetch('https://streetfix-backend-1j59.onrender.com/api/auth/login', {
+      // FIXED: was hardcoded to the dead "1j59" URL — now uses API_URL
+      const res  = await fetch(`${API_URL}/auth/login`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ email: form.email, password: form.password }),
       })
@@ -40,7 +59,8 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
     setLoading(true); setError('')
     const fullName = `${form.firstName} ${form.lastName}`.trim()
     try {
-      const res  = await fetch('https://streetfix-backend-1u4c.onrender.com/api/auth/register', {
+      // FIXED: now matches handleLogin — both use the same API_URL constant
+      const res  = await fetch(`${API_URL}/auth/register`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ name: fullName, email: form.email, password: form.password }),
       })
