@@ -1,16 +1,11 @@
-// Dashboard.jsx — fully mobile responsive + real backend data in "My Reports"
+// Dashboard.jsx — fully mobile responsive + real backend data throughout
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import Badge from '../components/Badge'
 
-const ACTIVITY = [
-  { dot:'#10b981', title:'Pothole on MG Road — Fixed!', desc:'PWD marked your report as resolved', time:'2h ago' },
-  { dot:'#3b82f6', title:'NH-48 Construction Zone', desc:'Status changed to In Progress', time:'5h ago' },
-  { dot:'#ff6b35', title:'New report submitted', desc:'Broken street light at Andheri West', time:'1d ago' },
-  { dot:'#f59e0b', title:'Upvotes on your report', desc:'12 citizens upvoted Waterlogged Road', time:'2d ago' },
-  { dot:'#10b981', title:'Road resurfacing complete', desc:'Link Road, Versova — fully resolved', time:'3d ago' },
-]
-
+// ── NOTIFS stays placeholder for now — needs a separate backend
+// notification system (not built yet). Activity feed below the
+// Overview tab is also still placeholder for the same reason. ──
 const NOTIFS = [
   { dot:'#10b981', title:'✅ Issue #1042 Resolved — Pothole at MG Road', desc:'PWD has completed repairs. Your report made this happen!', time:'2h ago', unread:true },
   { dot:'#3b82f6', title:'🔧 Status Update — Road construction at NH-48', desc:'NHAI has assigned a team to address your report.', time:'5h ago', unread:true },
@@ -19,26 +14,47 @@ const NOTIFS = [
   { dot:'#10b981', title:'✅ Issue #1035 Resolved — Link Road, Versova', desc:'Road resurfacing completed. Thank you for reporting!', time:'3d ago', unread:false },
 ]
 
-// Helper: turn the backend's stored issue type icon/title into something readable
-// (your reports are saved with plain text title/description, no fixed "type" enum
-// shown here, so we just show the title directly)
 const formatDate = (iso) => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+}
+
+// "2h ago" style relative time, used for the real Recent Activity feed
+const timeAgo = (iso) => {
+  if (!iso) return ''
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const mins   = Math.floor(diffMs / 60000)
+  if (mins < 60)  return `${mins}m ago`
+  const hours  = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days   = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+// Guess a category keyword from the report title, used for Issue Breakdown
+const categoriseTitle = (title = '') => {
+  const t = title.toLowerCase()
+  if (t.includes('pothole'))      return 'Potholes'
+  if (t.includes('construction')) return 'Construction'
+  if (t.includes('light'))        return 'Street Lights'
+  if (t.includes('water'))        return 'Waterlogging'
+  return 'Other'
 }
 
 export default function Dashboard({ navigate, initialTab = 'overview' }) {
   const [tab, setTab] = useState(initialTab)
   const { user } = useApp()
 
-  // ── Real reports state ──────────────────────────────────────
   const [reports,  setReports]  = useState([])
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
   const [search,   setSearch]   = useState('')
-  const [lightbox, setLightbox] = useState(null) // holds the image URL to show full-size, or null
+  const [lightbox, setLightbox] = useState(null)
 
-  // ── Fetch the logged-in user's real reports from the backend ──
+  // ── Fetch the logged-in user's real reports once on mount ──────
+  // (moved out of the tab-specific effect so BOTH Overview and
+  // My Reports tabs can use the same real data without re-fetching
+  // every time you switch tabs)
   useEffect(() => {
     const fetchMyReports = async () => {
       setLoading(true)
@@ -66,12 +82,8 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
       }
     }
 
-    // Only fetch when the "My Reports" tab is actually viewed,
-    // so we don't waste a request if the user never clicks it
-    if (tab === 'myreports') {
-      fetchMyReports()
-    }
-  }, [tab])
+    fetchMyReports()
+  }, [])
 
   // ── Derived stats from real report data ──────────────────────
   const totalCount      = reports.length
@@ -79,7 +91,44 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
   const inProgressCount = reports.filter(r => r.status === 'In Progress').length
   const pendingCount    = reports.filter(r => r.status === 'Pending').length
 
-  // ── Search filter ────────────────────────────────────────────
+  // Resolution rate as a real percentage (0 if no reports yet, to avoid NaN)
+  const resolutionRate = totalCount === 0 ? 0 : Math.round((resolvedCount / totalCount) * 100)
+
+  // Circle progress math for the SVG ring (radius 28 → circumference ≈ 176)
+  const circumference   = 176
+  const strokeDashoffset = circumference - (circumference * resolutionRate) / 100
+
+  // ── Real Issue Breakdown — tally categories from actual report titles ──
+  const breakdownCategories = ['Potholes', 'Construction', 'Street Lights', 'Waterlogging']
+  const breakdownColors = {
+    'Potholes'      : '#ff6b35',
+    'Construction'  : '#3b82f6',
+    'Street Lights' : '#f59e0b',
+    'Waterlogging'  : '#10b981',
+  }
+  const issueBreakdown = breakdownCategories
+    .map(cat => {
+      const count = reports.filter(r => categoriseTitle(r.title) === cat).length
+      const pct   = totalCount === 0 ? 0 : Math.round((count / totalCount) * 100)
+      return { label: cat, count, pct, color: breakdownColors[cat] }
+    })
+    .filter(c => c.count > 0) // only show categories that actually have reports
+
+  // ── Real Recent Activity — derived from your most recent reports ──
+  // (a true "activity log" with status-change history needs a separate
+  // backend feature; for now we show your latest report submissions
+  // as a meaningful real activity feed instead of fake data)
+  const recentActivity = [...reports]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5)
+    .map(r => ({
+      dot  : r.status === 'Resolved' ? '#10b981' : r.status === 'In Progress' ? '#3b82f6' : '#f59e0b',
+      title: r.title,
+      desc : `Status: ${r.status}`,
+      time : timeAgo(r.createdAt),
+    }))
+
+  // ── Search filter for My Reports tab ──────────────────────────
   const filteredReports = reports.filter(r => {
     const q = search.toLowerCase()
     return !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
@@ -91,7 +140,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
       <div style={{ background:'#f9fafb', borderBottom:'1px solid #e5e7eb', padding:'20px 0' }}>
         <div className="page-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
           <div>
-            {/* Real logged-in user's name instead of hardcoded "Rahul" */}
             <h2 style={{ fontSize:'1.35rem' }}>Welcome back, {user?.name?.split(' ')[0] || 'there'} 👋</h2>
             <p style={{ fontSize:'0.86rem', color:'#6b7280', marginTop:2 }}>Here's what's happening with your reports today.</p>
           </div>
@@ -101,7 +149,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
 
       <div className="page-container" style={{ paddingBottom:48 }}>
 
-        {/* ── Stat cards — now from REAL report counts ── */}
+        {/* ── Stat cards — real counts ── */}
         <div className="stats-grid" style={{ margin:'22px 0' }}>
           {[
             { icon:'📝', iconBg:'rgba(30,58,95,0.08)', val: totalCount,      label:'Total Reports' },
@@ -126,15 +174,28 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           ))}
         </div>
 
-        {/* ── OVERVIEW TAB — still uses placeholder activity feed for now ── */}
+        {/* ── OVERVIEW TAB — NOW REAL DATA ── */}
         {tab === 'overview' && (
           <div className="dashboard-grid">
+
+            {/* Recent Activity — real, derived from your latest reports */}
             <div className="card-static" style={{ overflow:'hidden' }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>Recent Activity</h3>
                 <span className="badge badge-live"><span className="badge-dot" />Live</span>
               </div>
-              {ACTIVITY.map((a,i) => (
+
+              {loading && (
+                <div style={{ padding:30, textAlign:'center', color:'#6b7280', fontSize:'0.85rem' }}>Loading...</div>
+              )}
+
+              {!loading && recentActivity.length === 0 && (
+                <div style={{ padding:30, textAlign:'center', color:'#6b7280', fontSize:'0.85rem' }}>
+                  No activity yet. Submit your first report to see it here.
+                </div>
+              )}
+
+              {!loading && recentActivity.map((a,i) => (
                 <div key={i} className="activity-item">
                   <div style={{ width:9, height:9, borderRadius:'50%', background:a.dot, flexShrink:0, marginTop:5 }} />
                   <div style={{ flex:1, minWidth:0 }}>
@@ -147,31 +208,49 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+              {/* Issue Breakdown — real tally from your report titles */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Issue Breakdown</h3>
-                {[['Potholes','6 reports',43,'#ff6b35'],['Construction','3 reports',21,'#3b82f6'],['Street Lights','3 reports',21,'#f59e0b'],['Waterlogging','2 reports',14,'#10b981']].map(([l,r,pct,c]) => (
-                  <div key={l} style={{ marginBottom:11 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.84rem', marginBottom:5 }}>
-                      <span>{l}</span><span style={{ color:'#6b7280' }}>{r}</span>
+                {issueBreakdown.length === 0 ? (
+                  <p style={{ fontSize:'0.82rem', color:'#9ca3af' }}>No reports yet to break down.</p>
+                ) : (
+                  issueBreakdown.map(b => (
+                    <div key={b.label} style={{ marginBottom:11 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.84rem', marginBottom:5 }}>
+                        <span>{b.label}</span><span style={{ color:'#6b7280' }}>{b.count} report{b.count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="progress-wrap"><div className="progress-bar" style={{ width:`${b.pct}%`, background:b.color }} /></div>
                     </div>
-                    <div className="progress-wrap"><div className="progress-bar" style={{ width:`${pct}%`, background:c }} /></div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
+              {/* Resolution Rate — real percentage from your actual reports */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Resolution Rate</h3>
                 <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
                   <div style={{ position:'relative', width:68, height:68, flexShrink:0 }}>
                     <svg viewBox="0 0 72 72" style={{ transform:'rotate(-90deg)', width:68, height:68 }}>
                       <circle cx="36" cy="36" r="28" fill="none" stroke="#e5e7eb" strokeWidth="8"/>
-                      <circle cx="36" cy="36" r="28" fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray="176" strokeDashoffset="47" strokeLinecap="round"/>
+                      <circle
+                        cx="36" cy="36" r="28" fill="none" stroke="#10b981" strokeWidth="8"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                      />
                     </svg>
-                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'0.9rem', color:'#1e3a5f' }}>73%</div>
+                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'0.9rem', color:'#1e3a5f' }}>
+                      {resolutionRate}%
+                    </div>
                   </div>
                   <div>
-                    <p style={{ fontSize:'0.82rem', color:'#6b7280', marginBottom:8 }}>8 of 14 issues resolved</p>
-                    <span className="badge badge-resolved"><span className="badge-dot" />Above City Average</span>
+                    <p style={{ fontSize:'0.82rem', color:'#6b7280', marginBottom:8 }}>
+                      {resolvedCount} of {totalCount} issue{totalCount !== 1 ? 's' : ''} resolved
+                    </p>
+                    {totalCount > 0 && (
+                      <span className="badge badge-resolved"><span className="badge-dot" />Keep reporting!</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -179,7 +258,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* ── MY REPORTS TAB — NOW SHOWS REAL DATA + PHOTOS ── */}
+        {/* ── MY REPORTS TAB ── */}
         {tab === 'myreports' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10 }}>
@@ -193,21 +272,18 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
               />
             </div>
 
-            {/* Loading state */}
             {loading && (
               <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
                 Loading your reports...
               </div>
             )}
 
-            {/* Error state */}
             {!loading && error && (
               <div style={{ padding:'14px 18px', color:'#dc2626', fontSize:'0.85rem' }}>
                 ⚠️ {error}
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && !error && filteredReports.length === 0 && (
               <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
                 <p style={{ fontSize:'2rem', marginBottom:8 }}>📭</p>
@@ -215,7 +291,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
               </div>
             )}
 
-            {/* Real report cards — grid layout, each card shows photo if present */}
             {!loading && !error && filteredReports.length > 0 && (
               <div style={{
                 display:'grid',
@@ -225,8 +300,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
               }}>
                 {filteredReports.map(r => (
                   <div key={r._id} style={{ border:'1px solid #e5e7eb', borderRadius:10, overflow:'hidden', background:'#fff' }}>
-
-                    {/* Photo — only renders if the report has an image */}
                     {r.image ? (
                       <img
                         src={r.image}
@@ -260,7 +333,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* ── NOTIFICATIONS TAB ── */}
+        {/* ── NOTIFICATIONS TAB — still placeholder, needs backend notification system ── */}
         {tab === 'notifications' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
@@ -281,7 +354,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
         )}
       </div>
 
-      {/* ── Lightbox — click any report photo to view it full size ── */}
+      {/* ── Lightbox ── */}
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
