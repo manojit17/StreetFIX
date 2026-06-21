@@ -103,7 +103,7 @@ export default function ReportIssue({ navigate }) {
       formData.append('title',       title)
       formData.append('description', description)
       formData.append('type',        issueType)
-      formData.append('severity',    severity.toLowerCase())
+      formData.append('severity',    severity)
       formData.append('latitude',    latitude)
       formData.append('longitude',   longitude)
       if (photoFiles[0]) {
