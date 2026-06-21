@@ -1,5 +1,6 @@
-// Dashboard.jsx — fully mobile responsive
-import { useState } from 'react'
+// Dashboard.jsx — fully mobile responsive + real backend data in "My Reports"
+import { useState, useEffect } from 'react'
+import { useApp } from '../context/AppContext'
 import Badge from '../components/Badge'
 
 const ACTIVITY = [
@@ -10,14 +11,6 @@ const ACTIVITY = [
   { dot:'#10b981', title:'Road resurfacing complete', desc:'Link Road, Versova — fully resolved', time:'3d ago' },
 ]
 
-const REPORTS = [
-  { type:'🕳️ Pothole', sev:'High', loc:'MG Road', city:'Bangalore, KA', status:'Resolved', date:'Jun 01, 2025' },
-  { type:'🚧 Construction', sev:'Medium', loc:'NH-48', city:'Delhi, DL', status:'In Progress', date:'May 29, 2025' },
-  { type:'💡 Street Light', sev:'Medium', loc:'Andheri West', city:'Mumbai, MH', status:'Pending', date:'May 27, 2025' },
-  { type:'💧 Waterlogging', sev:'High', loc:'Linking Road', city:'Mumbai, MH', status:'In Progress', date:'May 25, 2025' },
-  { type:'🛣️ Bad Surface', sev:'Low', loc:'Versova', city:'Mumbai, MH', status:'Resolved', date:'May 20, 2025' },
-]
-
 const NOTIFS = [
   { dot:'#10b981', title:'✅ Issue #1042 Resolved — Pothole at MG Road', desc:'PWD has completed repairs. Your report made this happen!', time:'2h ago', unread:true },
   { dot:'#3b82f6', title:'🔧 Status Update — Road construction at NH-48', desc:'NHAI has assigned a team to address your report.', time:'5h ago', unread:true },
@@ -26,17 +19,80 @@ const NOTIFS = [
   { dot:'#10b981', title:'✅ Issue #1035 Resolved — Link Road, Versova', desc:'Road resurfacing completed. Thank you for reporting!', time:'3d ago', unread:false },
 ]
 
+// Helper: turn the backend's stored issue type icon/title into something readable
+// (your reports are saved with plain text title/description, no fixed "type" enum
+// shown here, so we just show the title directly)
+const formatDate = (iso) => {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+}
+
 export default function Dashboard({ navigate, initialTab = 'overview' }) {
   const [tab, setTab] = useState(initialTab)
+  const { user } = useApp()
+
+  // ── Real reports state ──────────────────────────────────────
+  const [reports,  setReports]  = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [error,    setError]    = useState('')
+  const [search,   setSearch]   = useState('')
+  const [lightbox, setLightbox] = useState(null) // holds the image URL to show full-size, or null
+
+  // ── Fetch the logged-in user's real reports from the backend ──
+  useEffect(() => {
+    const fetchMyReports = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const token = localStorage.getItem('sf-token')
+        if (!token) {
+          setError('Please login to see your reports.')
+          setLoading(false)
+          return
+        }
+
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/reports/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+
+        if (!res.ok) throw new Error(data.message || 'Failed to load reports')
+
+        setReports(data.data || [])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Only fetch when the "My Reports" tab is actually viewed,
+    // so we don't waste a request if the user never clicks it
+    if (tab === 'myreports') {
+      fetchMyReports()
+    }
+  }, [tab])
+
+  // ── Derived stats from real report data ──────────────────────
+  const totalCount      = reports.length
+  const resolvedCount   = reports.filter(r => r.status === 'Resolved').length
+  const inProgressCount = reports.filter(r => r.status === 'In Progress').length
+  const pendingCount    = reports.filter(r => r.status === 'Pending').length
+
+  // ── Search filter ────────────────────────────────────────────
+  const filteredReports = reports.filter(r => {
+    const q = search.toLowerCase()
+    return !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+  })
 
   return (
     <div>
       {/* ── Header ── */}
       <div style={{ background:'#f9fafb', borderBottom:'1px solid #e5e7eb', padding:'20px 0' }}>
-        {/* page-container handles responsive padding; flex-wrap lets button drop below on narrow screens */}
         <div className="page-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
           <div>
-            <h2 style={{ fontSize:'1.35rem' }}>Welcome back, Rahul 👋</h2>
+            {/* Real logged-in user's name instead of hardcoded "Rahul" */}
+            <h2 style={{ fontSize:'1.35rem' }}>Welcome back, {user?.name?.split(' ')[0] || 'there'} 👋</h2>
             <p style={{ fontSize:'0.86rem', color:'#6b7280', marginTop:2 }}>Here's what's happening with your reports today.</p>
           </div>
           <button className="btn-accent" onClick={() => navigate('report')}>+ New Report</button>
@@ -45,18 +101,17 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
 
       <div className="page-container" style={{ paddingBottom:48 }}>
 
-        {/* ── Stat cards — 4 cols → 2 cols → 1 col via stats-grid class ── */}
+        {/* ── Stat cards — now from REAL report counts ── */}
         <div className="stats-grid" style={{ margin:'22px 0' }}>
           {[
-            { icon:'📝', iconBg:'rgba(30,58,95,0.08)', val:'14', label:'Total Reports', change:'+3 this week', up:true },
-            { icon:'✅', iconBg:'rgba(16,185,129,0.08)', val:'8', label:'Resolved', change:'+2 this month', up:true },
-            { icon:'🔧', iconBg:'rgba(59,130,246,0.08)', val:'4', label:'In Progress', change:'Active now', up:true },
-            { icon:'⏳', iconBg:'rgba(245,158,11,0.08)', val:'2', label:'Pending', change:'Needs attention', up:false },
+            { icon:'📝', iconBg:'rgba(30,58,95,0.08)', val: totalCount,      label:'Total Reports' },
+            { icon:'✅', iconBg:'rgba(16,185,129,0.08)', val: resolvedCount,   label:'Resolved' },
+            { icon:'🔧', iconBg:'rgba(59,130,246,0.08)', val: inProgressCount, label:'In Progress' },
+            { icon:'⏳', iconBg:'rgba(245,158,11,0.08)', val: pendingCount,    label:'Pending' },
           ].map(s => (
             <div key={s.label} className="stat-card">
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
                 <div style={{ width:38, height:38, background:s.iconBg, borderRadius:8, display:'grid', placeItems:'center', fontSize:'0.95rem' }}>{s.icon}</div>
-                <span style={{ fontSize:'0.7rem', fontWeight:600, padding:'2px 7px', borderRadius:4, background: s.up ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: s.up ? '#065f46' : '#ef4444' }}>{s.change}</span>
               </div>
               <div className="stat-number">{s.val}</div>
               <div style={{ fontSize:'0.78rem', color:'#6b7280', fontWeight:500, marginTop:2 }}>{s.label}</div>
@@ -64,14 +119,14 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           ))}
         </div>
 
-        {/* ── Tabs — scrollable on mobile via tab-bar CSS ── */}
+        {/* ── Tabs ── */}
         <div className="tab-bar" style={{ marginBottom:22 }}>
           {[['overview','Overview'],['myreports','My Reports'],['notifications','Notifications']].map(([id,label]) => (
             <button key={id} className={`tab-btn ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
 
-        {/* ── OVERVIEW TAB — dashboard-grid: 2 cols → 1 col on mobile ── */}
+        {/* ── OVERVIEW TAB — still uses placeholder activity feed for now ── */}
         {tab === 'overview' && (
           <div className="dashboard-grid">
             <div className="card-static" style={{ overflow:'hidden' }}>
@@ -92,7 +147,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              {/* Issue breakdown */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Issue Breakdown</h3>
                 {[['Potholes','6 reports',43,'#ff6b35'],['Construction','3 reports',21,'#3b82f6'],['Street Lights','3 reports',21,'#f59e0b'],['Waterlogging','2 reports',14,'#10b981']].map(([l,r,pct,c]) => (
@@ -105,7 +159,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
                 ))}
               </div>
 
-              {/* Resolution rate — wraps to vertical stack on tiny screens */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Resolution Rate</h3>
                 <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
@@ -126,72 +179,84 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* ── MY REPORTS TAB ── */}
+        {/* ── MY REPORTS TAB — NOW SHOWS REAL DATA + PHOTOS ── */}
         {tab === 'myreports' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
-            {/* Header wraps on mobile, search box shrinks to full width */}
             <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10 }}>
-              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>My Reports (14)</h3>
-              <input className="form-input" style={{ width:210, maxWidth:'100%' }} placeholder="🔍 Search reports..." />
+              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>My Reports ({totalCount})</h3>
+              <input
+                className="form-input"
+                style={{ width:210, maxWidth:'100%' }}
+                placeholder="🔍 Search reports..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </div>
 
-            {/* DESKTOP TABLE — hidden below 768px via desktop-table class */}
-            <div className="desktop-table" style={{ overflowX:'auto' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead>
-                  <tr>
-                    {['Issue Type','Location','Status','Date','Actions'].map(h => (
-                      <th key={h} style={{ padding:'10px 18px', textAlign:'left', fontSize:'0.72rem', fontWeight:600, color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'1px solid #e5e7eb', background:'#f9fafb' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {REPORTS.map((r,i) => (
-                    <tr key={i}>
-                      <td style={{ padding:'13px 18px' }}>
-                        <div style={{ fontWeight:600, fontSize:'0.88rem' }}>{r.type}</div>
-                        <div style={{ fontSize:'0.74rem', color:'#9ca3af' }}>Severity: {r.sev}</div>
-                      </td>
-                      <td style={{ padding:'13px 18px' }}>
-                        <div style={{ fontSize:'0.88rem' }}>{r.loc}</div>
-                        <div style={{ fontSize:'0.78rem', color:'#6b7280' }}>{r.city}</div>
-                      </td>
-                      <td style={{ padding:'13px 18px' }}><Badge status={r.status} /></td>
-                      <td style={{ padding:'13px 18px', fontSize:'0.78rem', color:'#9ca3af' }}>{r.date}</td>
-                      <td style={{ padding:'13px 18px' }}>
-                        <div style={{ display:'flex', gap:6 }}>
-                          <button className="btn-outline btn-sm">View</button>
-                          {r.status === 'Pending' && <button className="btn-danger">Delete</button>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* Loading state */}
+            {loading && (
+              <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
+                Loading your reports...
+              </div>
+            )}
 
-            {/* MOBILE CARDS — hidden above 768px via mobile-cards class */}
-            <div className="mobile-cards">
-              {REPORTS.map((r,i) => (
-                <div key={i} style={{ padding:16, borderBottom: i < REPORTS.length-1 ? '1px solid #f3f4f6' : 'none' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-                    <div>
-                      <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{r.type}</div>
-                      <div style={{ fontSize:'0.76rem', color:'#9ca3af' }}>Severity: {r.sev}</div>
-                    </div>
-                    <Badge status={r.status} />
-                  </div>
-                  <div style={{ fontSize:'0.84rem', marginBottom:2 }}>{r.loc}</div>
-                  <div style={{ fontSize:'0.78rem', color:'#6b7280', marginBottom:10 }}>{r.city} · {r.date}</div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <button className="btn-outline btn-sm" style={{ flex:1, justifyContent:'center' }}>View</button>
-                    {r.status === 'Pending' && (
-                      <button className="btn-danger" style={{ flex:1, justifyContent:'center' }}>Delete</button>
+            {/* Error state */}
+            {!loading && error && (
+              <div style={{ padding:'14px 18px', color:'#dc2626', fontSize:'0.85rem' }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && !error && filteredReports.length === 0 && (
+              <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
+                <p style={{ fontSize:'2rem', marginBottom:8 }}>📭</p>
+                <p>No reports yet. Click "+ New Report" to submit your first one.</p>
+              </div>
+            )}
+
+            {/* Real report cards — grid layout, each card shows photo if present */}
+            {!loading && !error && filteredReports.length > 0 && (
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))',
+                gap:16,
+                padding:18,
+              }}>
+                {filteredReports.map(r => (
+                  <div key={r._id} style={{ border:'1px solid #e5e7eb', borderRadius:10, overflow:'hidden', background:'#fff' }}>
+
+                    {/* Photo — only renders if the report has an image */}
+                    {r.image ? (
+                      <img
+                        src={r.image}
+                        alt={r.title}
+                        onClick={() => setLightbox(r.image)}
+                        style={{ width:'100%', height:160, objectFit:'cover', cursor:'pointer', display:'block' }}
+                      />
+                    ) : (
+                      <div style={{ width:'100%', height:160, background:'#f3f4f6', display:'flex', alignItems:'center', justifyContent:'center', color:'#9ca3af', fontSize:'0.8rem' }}>
+                        No photo attached
+                      </div>
                     )}
+
+                    <div style={{ padding:14 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:6 }}>
+                        <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{r.title}</div>
+                        <Badge status={r.status} />
+                      </div>
+                      <p style={{ fontSize:'0.8rem', color:'#6b7280', marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                        {r.description}
+                      </p>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.74rem', color:'#9ca3af' }}>
+                        <span>Severity: {r.severity}</span>
+                        <span>{formatDate(r.createdAt)}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -215,6 +280,19 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
       </div>
+
+      {/* ── Lightbox — click any report photo to view it full size ── */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:1000,
+            display:'flex', alignItems:'center', justifyContent:'center', padding:20, cursor:'zoom-out',
+          }}
+        >
+          <img src={lightbox} alt="Report" style={{ maxWidth:'100%', maxHeight:'100%', borderRadius:8 }} />
+        </div>
+      )}
     </div>
   )
 }
