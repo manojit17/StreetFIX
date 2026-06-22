@@ -143,7 +143,7 @@ export default function Landing({ navigate }) {
               {/* Only "Report an Issue" button — "Create Free Account" removed */}
               <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:36 }}>
                 <button className="btn-accent" onClick={() => navigate('report')}>📝 Report an Issue</button>
-                <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button>
+                {/* <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button> */}
               </div>
 
               {/* Real stats — only show when data is loaded and reports exist */}
