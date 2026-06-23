@@ -12,7 +12,9 @@ export function AppProvider({ children }) {
     try { return JSON.parse(localStorage.getItem('sf-user')) || null }
     catch { return null }
   })
-
+  const [notifOpen, setNotifOpen] = useState(false)
+  const toggleNotif = useCallback(() => setNotifOpen(o => !o), [])
+  const closeNotif  = useCallback(() => setNotifOpen(false), [])
   const [toast, setToast] = useState({
     show: false, icon: '', title: '', msg: '', key: 0
   })
@@ -44,7 +46,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       isLoggedIn, setIsLoggedIn,
       user, saveAuth, clearAuth,
-      toast, showToast,
+      toast, showToast,notifOpen, toggleNotif, closeNotif,
     }}>
       {children}
     </AppContext.Provider>

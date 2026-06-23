@@ -1,4 +1,4 @@
-// Home.jsx (Overview page) — shows MY reports in recent list when logged in
+// Home.jsx (Overview page) — notification quick action opens panel via AppContext
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import Badge from '../components/Badge'
@@ -29,17 +29,14 @@ const timeAgo = (iso) => {
 }
 
 export default function Home({ navigate }) {
-  const { isLoggedIn } = useApp()
+  // toggleNotif opens/closes the notification panel in the Navbar
+  const { isLoggedIn, toggleNotif } = useApp()
 
-  // City-wide stats — always public
-  const [allReports,  setAllReports]  = useState([])
-  const [allLoading,  setAllLoading]  = useState(true)
+  const [allReports, setAllReports] = useState([])
+  const [allLoading, setAllLoading] = useState(true)
+  const [myReports,  setMyReports]  = useState([])
+  const [myLoading,  setMyLoading]  = useState(false)
 
-  // My reports — only when logged in
-  const [myReports,   setMyReports]   = useState([])
-  const [myLoading,   setMyLoading]   = useState(false)
-
-  // Fetch all reports for city-wide stats (public)
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -52,7 +49,6 @@ export default function Home({ navigate }) {
     fetchAll()
   }, [])
 
-  // Fetch MY reports when logged in (for the recent list)
   useEffect(() => {
     if (!isLoggedIn) { setMyReports([]); return }
     const fetchMine = async () => {
@@ -70,25 +66,30 @@ export default function Home({ navigate }) {
     fetchMine()
   }, [isLoggedIn])
 
-  // City-wide stats from ALL reports
   const totalCount      = allReports.length
   const resolvedCount   = allReports.filter(r => r.status === 'Resolved').length
   const inProgressCount = allReports.filter(r => r.status === 'In Progress').length
   const pendingCount    = allReports.filter(r => r.status === 'Pending').length
 
-  // Recent list: MY reports if logged in, else ALL reports
-  const sourceReports  = isLoggedIn ? myReports : allReports
-  const sourceLoading  = isLoggedIn ? myLoading  : allLoading
-  const recentReports  = [...sourceReports]
+  const sourceReports = isLoggedIn ? myReports  : allReports
+  const sourceLoading = isLoggedIn ? myLoading  : allLoading
+  const recentReports = [...sourceReports]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 4)
 
-  // Most common issues tally (from all reports for city context)
   const keywordCount = (kw) => allReports.filter(r => r.title.toLowerCase().includes(kw)).length
+
+  // Quick actions — each has its own action function
+  // 🔔 Notifications now calls toggleNotif() instead of navigate('dashboard')
+  const quickActions = [
+    { icon:'📝', iconBg:'rgba(30,58,95,0.08)',  label:'Report Issue',   action: () => navigate('report')    },
+    { icon:'📊', iconBg:'rgba(16,185,129,0.08)', label:'My Reports',    action: () => navigate('dashboard') },
+    { icon:'🔔', iconBg:'rgba(245,158,11,0.08)', label:'Notifications', action: () => toggleNotif()         },
+  ]
 
   return (
     <div>
-      {/* ── Hero bar ── */}
+      {/* Hero bar */}
       <div style={{ background:'linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)', borderBottom:'1px solid #e5e7eb', padding:'32px 0 24px' }}>
         <div className="page-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16 }}>
           <div>
@@ -102,14 +103,10 @@ export default function Home({ navigate }) {
 
       <div className="page-container" style={{ paddingTop:24, paddingBottom:48 }}>
 
-        {/* ── Quick Actions ── */}
+        {/* Quick Actions */}
         <div className="quick-actions-grid" style={{ marginBottom:24 }}>
-          {[
-            { icon:'📝', iconBg:'rgba(30,58,95,0.08)', label:'Report Issue', page:'report' },
-            { icon:'📊', iconBg:'rgba(16,185,129,0.08)', label:'My Reports', page:'dashboard' },
-            { icon:'🔔', iconBg:'rgba(245,158,11,0.08)', label:'Notifications', page:'dashboard' },
-          ].map(q => (
-            <div key={q.label} className="quick-action" onClick={() => navigate(q.page)}>
+          {quickActions.map(q => (
+            <div key={q.label} className="quick-action" onClick={q.action}>
               <div style={{ width:48, height:48, background:q.iconBg, borderRadius:10, display:'grid', placeItems:'center', fontSize:'1.3rem' }}>{q.icon}</div>
               <span style={{ fontSize:'0.86rem', fontWeight:600 }}>{q.label}</span>
             </div>
@@ -120,7 +117,6 @@ export default function Home({ navigate }) {
 
           {/* LEFT — Recent Reports */}
           <div>
-            {/* Title changes based on login state */}
             <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'1rem', marginBottom:12 }}>
               {isLoggedIn ? 'My Recent Reports' : 'Recent Reports Near You'}
             </h3>
@@ -133,14 +129,9 @@ export default function Home({ navigate }) {
 
             {!sourceLoading && recentReports.length === 0 && (
               <div style={{ padding:24, textAlign:'center', color:'#6b7280', fontSize:'0.85rem' }}>
-                {isLoggedIn
-                  ? 'You have not reported any issues yet.'
-                  : 'No reports yet. Be the first to report an issue!'
-                }
+                {isLoggedIn ? 'You have not reported any issues yet.' : 'No reports yet. Be the first!'}
                 <div style={{ marginTop:12 }}>
-                  <button className="btn-accent btn-sm" onClick={() => navigate('report')}>
-                    + Report an Issue
-                  </button>
+                  <button className="btn-accent btn-sm" onClick={() => navigate('report')}>+ Report an Issue</button>
                 </div>
               </div>
             )}
@@ -155,9 +146,7 @@ export default function Home({ navigate }) {
                       <div style={{ width:44, height:44, background:bg, borderRadius:10, display:'grid', placeItems:'center', fontSize:'1.15rem', flexShrink:0 }}>{icon}</div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:'0.9rem', fontWeight:600, marginBottom:2 }}>{r.title}</div>
-                        <div style={{ fontSize:'0.78rem', color:'#6b7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {r.description}
-                        </div>
+                        <div style={{ fontSize:'0.78rem', color:'#6b7280', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.description}</div>
                         <div className="progress-wrap" style={{ marginTop:6 }}>
                           <div className="progress-bar" style={{ width:`${pct}%`, background:color }} />
                         </div>
@@ -173,7 +162,7 @@ export default function Home({ navigate }) {
             )}
           </div>
 
-          {/* RIGHT — City stats (always all reports) + Most Common */}
+          {/* RIGHT — City stats + Most Common */}
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
             <div className="card-static" style={{ padding:20 }}>
               <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:14 }}>City-Wide Status</h3>
