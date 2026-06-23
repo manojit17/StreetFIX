@@ -1,11 +1,4 @@
-// Landing.jsx — fully mobile responsive
-// CHANGES:
-//   1. Removed fake floating cards → shows real reports from backend (or blank if none)
-//   2. Removed fake stats (2.4K, 1.1K, 48h) → shows real counts (or blank if none)
-//   3. Removed "Create Free Account" button everywhere
-//   4. Removed "Explore Issue Map" from CTA (since Issue Map is being removed)
-//   5. CTA section now shows "Report an Issue" button only
-
+// Landing.jsx — floating cards + stats show logged-in user's OWN reports
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 
@@ -25,61 +18,64 @@ const STEPS = [
   { n:'04', title:'Road Gets Fixed',    desc:'Track progress and get notified when the road is repaired.' },
 ]
 
-// Progress color based on status
-const statusColor = (status) => {
-  if (status === 'Resolved')    return '#10b981'
-  if (status === 'In Progress') return '#3b82f6'
-  return '#f59e0b'
-}
-
-const statusPct = (status) => {
-  if (status === 'Resolved')    return 100
-  if (status === 'In Progress') return 60
-  return 20
-}
-
-const statusCls = (status) => {
-  if (status === 'Resolved')    return 'badge-resolved'
-  if (status === 'In Progress') return 'badge-progress'
-  return 'badge-pending'
-}
+const statusColor = (s) => s === 'Resolved' ? '#10b981' : s === 'In Progress' ? '#3b82f6' : '#f59e0b'
+const statusPct   = (s) => s === 'Resolved' ? 100 : s === 'In Progress' ? 60 : 20
+const statusCls   = (s) => s === 'Resolved' ? 'badge-resolved' : s === 'In Progress' ? 'badge-progress' : 'badge-pending'
 
 export default function Landing({ navigate }) {
+  const { saveAuth, showToast, isLoggedIn } = useApp()
+
   const [showModal, setShowModal] = useState(false)
   const [tab,       setTab]       = useState('login')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [form, setForm] = useState({ name:'', email:'', password:'', confirmPassword:'' })
-  const { saveAuth, showToast } = useApp()
 
-  // ── Fetch real reports for floating cards + stats ──────────
-  const [reports,      setReports]      = useState([])
-  const [statsLoading, setStatsLoading] = useState(true)
+  // ── My reports (if logged in) for floating cards ────────────
+  const [myReports,     setMyReports]     = useState([])
+  const [myLoading,     setMyLoading]     = useState(false)
 
+  // ── All reports (always) for the city-wide stats badge ──────
+  const [allTotal,      setAllTotal]      = useState(0)
+  const [statsLoading,  setStatsLoading]  = useState(true)
+
+  // Fetch city-wide total (public, always runs)
   useEffect(() => {
-    const fetchReports = async () => {
+    const fetchTotal = async () => {
       try {
         const res  = await fetch(`${import.meta.env.VITE_API_URL}/reports`)
         const data = await res.json()
-        if (data.success) setReports(data.data || [])
-      } catch (err) {
-        // silently fail — page still works without stats
-      } finally {
-        setStatsLoading(false)
-      }
+        if (data.success) setAllTotal((data.data || []).length)
+      } catch {}
+      finally { setStatsLoading(false) }
     }
-    fetchReports()
+    fetchTotal()
   }, [])
 
-  // Real stats derived from actual reports
-  const totalCount    = reports.length
-  const resolvedCount = reports.filter(r => r.status === 'Resolved').length
+  // Fetch MY reports only when logged in
+  useEffect(() => {
+    if (!isLoggedIn) { setMyReports([]); return }
+    const fetchMine = async () => {
+      setMyLoading(true)
+      try {
+        const token = localStorage.getItem('sf-token')
+        const res   = await fetch(`${import.meta.env.VITE_API_URL}/reports/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (data.success) setMyReports(data.data || [])
+      } catch {}
+      finally { setMyLoading(false) }
+    }
+    fetchMine()
+  }, [isLoggedIn])
 
-  // Most recent 3 reports for floating cards (blank if none yet)
-  const recentThree = reports
-    .slice()
+  // My 3 most recent reports for the floating cards
+  const myRecentThree = [...myReports]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 3)
+
+  const myResolved = myReports.filter(r => r.status === 'Resolved').length
 
   const setField = (key, val) => { setForm(f => ({ ...f, [key]: val })); setError('') }
   const openModal = (t = 'login') => {
@@ -127,9 +123,10 @@ export default function Landing({ navigate }) {
 
             {/* LEFT */}
             <div>
+              {/* Live badge — shows city-wide total */}
               <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:20, padding:'4px 14px', fontSize:'0.74rem', fontWeight:600, color:'#ffffff', marginBottom:20 }}>
                 <span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', display:'inline-block', animation:'livePulse 1.5s ease-in-out infinite' }} />
-                {statsLoading ? 'Live · Loading...' : `Live · ${totalCount} Issue${totalCount !== 1 ? 's' : ''} Tracked`}
+                {statsLoading ? 'Live · Loading...' : `Live · ${allTotal} Issue${allTotal !== 1 ? 's' : ''} Tracked`}
               </div>
 
               <h1 className="hero-heading" style={{ fontSize:'clamp(2rem,5vw,3.5rem)', lineHeight:1.1, color:'#ffffff', marginBottom:16 }}>
@@ -140,22 +137,33 @@ export default function Landing({ navigate }) {
                 Report potholes, construction zones, and road hazards in seconds. Track progress in real-time and hold authorities accountable until fixed.
               </p>
 
-              {/* Only "Report an Issue" button — "Create Free Account" removed */}
               <div className="hero-btns" style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:36 }}>
                 <button className="btn-accent" onClick={() => navigate('report')}>📝 Report an Issue</button>
-                {/* <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button> */}
+                {!isLoggedIn && (
+                  <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button>
+                )}
               </div>
 
-              {/* Real stats — only show when data is loaded and reports exist */}
-              {!statsLoading && totalCount > 0 && (
+              {/* Stats — show MY report counts if logged in, else city total */}
+              {isLoggedIn && !myLoading && myReports.length > 0 && (
                 <div className="hero-stats" style={{ display:'flex', gap:28, flexWrap:'wrap' }}>
                   <div>
-                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#ffffff' }}>{totalCount}</div>
-                    <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.65)', fontWeight:500 }}>Issues Reported</div>
+                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#ffffff' }}>{myReports.length}</div>
+                    <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.65)', fontWeight:500 }}>My Reports</div>
                   </div>
                   <div>
-                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#ffffff' }}>{resolvedCount}</div>
-                    <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.65)', fontWeight:500 }}>Roads Fixed</div>
+                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#ffffff' }}>{myResolved}</div>
+                    <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.65)', fontWeight:500 }}>My Roads Fixed</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Not logged in — show city total as motivation */}
+              {!isLoggedIn && !statsLoading && allTotal > 0 && (
+                <div className="hero-stats" style={{ display:'flex', gap:28, flexWrap:'wrap' }}>
+                  <div>
+                    <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#ffffff' }}>{allTotal}</div>
+                    <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.65)', fontWeight:500 }}>Issues Reported</div>
                   </div>
                 </div>
               )}
@@ -167,44 +175,51 @@ export default function Landing({ navigate }) {
               </div>
             </div>
 
-            {/* RIGHT — floating cards with REAL data, hidden on mobile */}
-            {/* Only renders if there are actual reports to show */}
-            {recentThree.length > 0 && (
-              <div className="hero-cards-col" style={{ position:'relative', height:360 }}>
-                {recentThree.map((r, i) => (
+            {/* RIGHT — floating cards */}
+            <div className="hero-cards-col" style={{ position:'relative', height:360 }}>
+              {/* Logged in + has reports → show their own reports */}
+              {isLoggedIn && !myLoading && myRecentThree.length > 0 && (
+                myRecentThree.map((r, i) => (
                   <div key={r._id} className="float-card">
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
                       <div>
-                        <div style={{ fontSize:'0.86rem', fontWeight:600, color:'#ffffff', marginBottom:2 }}>
-                          {r.title}
-                        </div>
-                        <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.65)' }}>
-                          {r.userId?.name || 'Anonymous'}
-                        </div>
+                        <div style={{ fontSize:'0.86rem', fontWeight:600, color:'#ffffff', marginBottom:2 }}>{r.title}</div>
+                        <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.65)' }}>Severity: {r.severity}</div>
                       </div>
-                      <span className={`badge ${statusCls(r.status)}`}>
-                        <span className="badge-dot" />{r.status}
-                      </span>
+                      <span className={`badge ${statusCls(r.status)}`}><span className="badge-dot" />{r.status}</span>
                     </div>
-                    <div style={{ fontSize:'0.74rem', color:'rgba(255,255,255,0.6)', marginBottom:8 }}>
-                      Severity: {r.severity}
-                    </div>
+                    <div style={{ fontSize:'0.74rem', color:'rgba(255,255,255,0.6)', marginBottom:8 }}>{r.description?.slice(0, 60)}{r.description?.length > 60 ? '...' : ''}</div>
                     <div style={{ background:'rgba(255,255,255,0.15)', borderRadius:3, height:4, overflow:'hidden' }}>
                       <div style={{ width:`${statusPct(r.status)}%`, height:'100%', background:statusColor(r.status), borderRadius:3 }} />
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
 
-            {/* If no reports yet — right column is just empty (no placeholder cards) */}
-            {recentThree.length === 0 && !statsLoading && (
-              <div className="hero-cards-col" style={{ position:'relative', height:360, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <p style={{ color:'rgba(255,255,255,0.3)', fontSize:'0.85rem', textAlign:'center' }}>
-                  Be the first to report an issue
-                </p>
-              </div>
-            )}
+              {/* Logged in but no reports yet */}
+              {isLoggedIn && !myLoading && myRecentThree.length === 0 && (
+                <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12 }}>
+                  <p style={{ color:'rgba(255,255,255,0.4)', fontSize:'0.85rem', textAlign:'center' }}>
+                    You haven't reported any issues yet
+                  </p>
+                  <button className="btn-outline-white" onClick={() => navigate('report')}>
+                    + Report Your First Issue
+                  </button>
+                </div>
+              )}
+
+              {/* Not logged in — prompt to sign in */}
+              {!isLoggedIn && (
+                <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12 }}>
+                  <p style={{ color:'rgba(255,255,255,0.35)', fontSize:'0.85rem', textAlign:'center', maxWidth:220 }}>
+                    Sign in to see your personal report progress here
+                  </p>
+                  <button className="btn-outline-white" onClick={() => openModal('login')}>
+                    🔑 Sign In
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -248,7 +263,7 @@ export default function Landing({ navigate }) {
         </div>
       </section>
 
-      {/* ══ CTA — "Create Free Account" removed, just "Report an Issue" ══ */}
+      {/* ══ CTA ══ */}
       <section style={{ padding:'0 0 60px' }}>
         <div className="page-container">
           <div className="cta-box">
@@ -260,7 +275,9 @@ export default function Landing({ navigate }) {
             </p>
             <div className="cta-btns" style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
               <button className="btn-accent" onClick={() => navigate('report')}>📝 Report an Issue</button>
-              <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button>
+              {!isLoggedIn && (
+                <button className="btn-outline-white" onClick={() => openModal('login')}>🔑 Sign In</button>
+              )}
             </div>
           </div>
         </div>
@@ -308,17 +325,16 @@ export default function Landing({ navigate }) {
             )}
             <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {tab === 'register' && (
-                <input type="text"     className="form-input" placeholder="Full Name"        value={form.name}            onChange={e => setField('name', e.target.value)} />
+                <input type="text" className="form-input" placeholder="Full Name" value={form.name} onChange={e => setField('name', e.target.value)} />
               )}
-              <input   type="email"    className="form-input" placeholder="Email Address"    value={form.email}           onChange={e => setField('email', e.target.value)} />
-              <input   type="password" className="form-input" placeholder="Password"         value={form.password}        onChange={e => setField('password', e.target.value)} />
+              <input type="email"    className="form-input" placeholder="Email Address"    value={form.email}           onChange={e => setField('email', e.target.value)} />
+              <input type="password" className="form-input" placeholder="Password"         value={form.password}        onChange={e => setField('password', e.target.value)} />
               {tab === 'register' && (
                 <input type="password" className="form-input" placeholder="Confirm Password" value={form.confirmPassword} onChange={e => setField('confirmPassword', e.target.value)} />
               )}
               <button type="submit" disabled={loading}
                 style={{ padding:'12px', borderRadius:10, border:'none', cursor:'pointer', marginTop:4,
-                         background: loading ? '#9ca3af' : '#ff6b35',
-                         color:'#ffffff', fontWeight:700, fontSize:'0.95rem' }}>
+                         background: loading ? '#9ca3af' : '#ff6b35', color:'#ffffff', fontWeight:700, fontSize:'0.95rem' }}>
                 {loading ? 'Please wait...' : tab === 'login' ? 'Sign In' : 'Create Account'}
               </button>
             </form>
