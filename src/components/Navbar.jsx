@@ -11,10 +11,9 @@ import { useApp } from '../context/AppContext'
 import AuthModal from './AuthModal'
 
 const NOTIFS = [
-  { id:1, dot:'#10b981', title:'Issue #1042 Resolved ✅', msg:'Pothole at MG Road has been fixed',    time:'2h ago',  unread:true  },
-  { id:2, dot:'#3b82f6', title:'Status Update 🔧',        msg:'NH-48 construction is now In Progress', time:'5h ago',  unread:true  },
-  { id:3, dot:'#ff6b35', title:'Your report submitted',   msg:'Issue #1049 pending review',            time:'1d ago',  unread:false },
-  { id:4, dot:'#9ca3af', title:'3 new issues near you',   msg:'Citizens reported nearby problems',     time:'2d ago',  unread:false },
+  <div style={{ padding:'20px 16px', textAlign:'center', color:'#9ca3af', fontSize:'0.84rem' }}>
+  🔔 No notifications yet
+</div>
 ]
 
 // Returns true when screen width < breakpoint (default 768px)
@@ -42,7 +41,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
     { id:'home',    label:'Overview' },
     { id:'dashboard', label:'Dashboard' },
     { id:'report',  label:'Report Issue' },
-    { id:'map',     label:'Issue Map' },
+    // { id:'map',     label:'Issue Map' },
   ]
 
   const navigate = (page) => {
@@ -150,14 +149,14 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               >
                 <Bell size={16} color="#1f2937" />
                 {/* Unread dot */}
-                <div style={{
+                {/* <div style={{
                   position:'absolute', top:6, right:6,
                   width:7, height:7,
                   background:'#ef4444', borderRadius:'50%',
                   pointerEvents:'none',
                 }} />
               </button>
-            </div>
+            </div> */}
 
             {/* ── Auth area ── */}
             {isLoggedIn ? (
