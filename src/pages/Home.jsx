@@ -90,7 +90,7 @@ export default function Home({ navigate }) {
         <div className="quick-actions-grid" style={{ marginBottom:24 }}>
           {[
             { icon:'📝', iconBg:'rgba(30,58,95,0.08)', label:'Report Issue', page:'report' },
-            { icon:'🗺️', iconBg:'rgba(59,130,246,0.08)', label:'Issue Map', page:'map' },
+            // { icon:'🗺️', iconBg:'rgba(59,130,246,0.08)', label:'Issue Map', page:'map' },
             { icon:'📊', iconBg:'rgba(16,185,129,0.08)', label:'My Reports', page:'dashboard' },
             { icon:'🔔', iconBg:'rgba(245,158,11,0.08)', label:'Notifications', page:'dashboard' },
           ].map(q => (
