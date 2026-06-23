@@ -273,7 +273,7 @@ export default function ReportIssue({ navigate }) {
               <div>
                 <label className="form-label">State</label>
                 <select className="form-input" style={{ cursor: 'pointer' }}>
-                  <option>Karnataka</option>
+                  <option>West Bengal</option>
                   <option>Maharashtra</option>
                   <option>Delhi</option>
                   <option>Tamil Nadu</option>
@@ -325,7 +325,7 @@ export default function ReportIssue({ navigate }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.86rem', color: '#6b7280' }}>
             <input type="checkbox" id="notify-cb" defaultChecked style={{ accentColor: '#1e3a5f', width: 15, height: 15, flexShrink: 0 }} />
-            <label htmlFor="notify-cb">Notify me via email when status changes</label>
+            <label htmlFor="notify-cb">Notify me via Notification when status changes</label>
           </div>
         </div>
 
