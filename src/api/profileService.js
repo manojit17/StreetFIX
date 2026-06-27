@@ -1,4 +1,4 @@
-const BASE = 'https://streetfix-backend-1u4c.onrender.com'
+const BASE = 'https://streetfix-backend-1u4c.onrender.com/api'
 const getToken = () => localStorage.getItem('sf-token')
 const authHeaders = () => ({
   'Content-Type': 'application/json',
