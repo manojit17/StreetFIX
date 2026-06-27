@@ -17,8 +17,6 @@ function useIsMobile(breakpoint = 768) {
 }
 
 export default function Navbar({ currentPage, setCurrentPage }) {
-  // notifOpen, toggleNotif, closeNotif come from AppContext
-  // so ANY page (like Home.jsx) can trigger the panel open
   const { isLoggedIn, user, clearAuth, showToast, notifOpen, toggleNotif, closeNotif } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [authModal,  setAuthModal]  = useState(null)
@@ -29,13 +27,12 @@ export default function Navbar({ currentPage, setCurrentPage }) {
     { id:'home',      label:'Overview'     },
     { id:'dashboard', label:'Dashboard'    },
     { id:'report',    label:'Report Issue' },
-    // { id:'map', label:'Issue Map' },
   ]
 
   const navigate = (page) => {
     setCurrentPage(page)
     setMobileOpen(false)
-    closeNotif()  // close notification panel when navigating
+    closeNotif()
   }
 
   const logout = () => {
@@ -90,7 +87,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
           {/* Right controls */}
           <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:16, flexShrink:0 }}>
 
-            {/* Bell icon — toggles notifOpen in AppContext */}
+            {/* Bell icon */}
             <div style={{ position:'relative', flexShrink:0 }}>
               <button
                 onClick={toggleNotif}
@@ -105,11 +102,33 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             {/* Auth area */}
             {isLoggedIn ? (
               <>
-                <div style={{ width:36, height:36, background:'#1e3a5f', borderRadius:'50%',
-                             display:'grid', placeItems:'center', fontSize:'0.74rem',
-                             fontWeight:700, color:'white', flexShrink:0 }}>
+                {/* ✅ CHANGE: Avatar now clickable — opens Profile page */}
+                <div
+                  onClick={() => navigate('profile')}
+                  title="My Profile"
+                  style={{
+                    width:36, height:36,
+                    background:'#1e3a5f',
+                    borderRadius:'50%',
+                    display:'grid', placeItems:'center',
+                    fontSize:'0.74rem', fontWeight:700,
+                    color:'white', flexShrink:0,
+                    cursor:'pointer',
+                    border:'2px solid transparent',
+                    transition:'all 0.2s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#ff6b35'
+                    e.currentTarget.style.transform   = 'scale(1.08)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'transparent'
+                    e.currentTarget.style.transform   = 'scale(1)'
+                  }}
+                >
                   {initials}
                 </div>
+
                 {!isMobile && (
                   <button className="nav-link btn-sm" onClick={logout}>Logout</button>
                 )}
@@ -166,7 +185,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
         </div>
       )}
 
-      {/* Backdrop — closes panel on outside click */}
+      {/* Backdrop */}
       {notifOpen && (
         <div onClick={closeNotif} style={{ position:'fixed', inset:0, zIndex:50 }} />
       )}
@@ -184,6 +203,18 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               {l.label}
             </button>
           ))}
+
+          {/* ✅ CHANGE: Profile link in mobile menu */}
+          {isLoggedIn && (
+            <button
+              className="nav-link"
+              style={{ display:'block', width:'100%', textAlign:'left', marginBottom:4, padding:'10px 14px' }}
+              onClick={() => navigate('profile')}
+            >
+              👤 My Profile
+            </button>
+          )}
+
           {isLoggedIn ? (
             <button className="btn-outline"
               style={{ width:'100%', justifyContent:'center', marginTop:10 }}

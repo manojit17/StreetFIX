@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import ReportIssue from './pages/ReportIssue'
 import IssueMap from './pages/IssueMap'
+import Profile from './pages/Profile'
 
 export default function App() {
   const [page, setPage] = useState('landing')
@@ -16,16 +17,17 @@ export default function App() {
     window.scrollTo(0, 0)
   }
 
-  const renderPage = () => {
-    switch (page) {
-      case 'landing':   return <Landing navigate={navigate} />
-      case 'home':      return <Home navigate={navigate} />
-      case 'dashboard': return <Dashboard navigate={navigate} />
-      case 'report':    return <ReportIssue navigate={navigate} />
-      case 'map':       return <IssueMap navigate={navigate} />
-      default:          return <Landing navigate={navigate} />
-    }
-  }
+ const renderPage = () => {
+   switch (page) {
+     case 'landing'  : return <Landing   navigate={navigate} />
+     case 'home'     : return <Home      navigate={navigate} />
+     case 'dashboard': return <Dashboard navigate={navigate} />
+     case 'report'   : return <ReportIssue navigate={navigate} />
+     case 'map'      : return <IssueMap  navigate={navigate} />
+     case 'profile'  : return <Profile   navigate={navigate} />   
+     default         : return <Landing   navigate={navigate} />
+   }
+ }
 
   return (
     <AppProvider>

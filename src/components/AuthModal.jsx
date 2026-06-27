@@ -5,9 +5,7 @@ import { X } from 'lucide-react'
 // ── FIX ──────────────────────────────────────────────────────
 // This file previously had the backend URL HARDCODED in two
 // different places, with two DIFFERENT values:
-//   handleLogin  → "https://streetfix-backend-1j59.onrender.com" (OLD, dead)
 //   handleSignup → "https://streetfix-backend-1u4c.onrender.com" (current)
-//
 // Neither one read from your .env file at all, which is why
 // changing VITE_API_URL on Vercel never fixed login no matter
 // how many times it was redeployed — this file simply never
