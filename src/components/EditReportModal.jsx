@@ -1,5 +1,5 @@
 // src/components/EditReportModal.jsx
-// Modal for editing title, description, severity of a report
+// Modal for editing title, description, severity, and photo of a report
 // Opens from the Profile page report list
 
 import { useState } from 'react'
@@ -12,12 +12,23 @@ export default function EditReportModal({ report, onClose, onUpdated }) {
     description: report.description,
     severity   : report.severity,
   })
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(report.image || '')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setError('')
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+      setError('')
+    }
   }
 
   const handleSave = async () => {
@@ -27,7 +38,16 @@ export default function EditReportModal({ report, onClose, onUpdated }) {
     }
     setLoading(true)
     try {
-      const data = await updateReport(report._id, form)
+      // Build FormData to support file upload
+      const formData = new FormData()
+      formData.append('title', form.title)
+      formData.append('description', form.description)
+      formData.append('severity', form.severity)
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      const data = await updateReport(report._id, formData)
       onUpdated(data.data) // pass updated report back to parent
       onClose()
     } catch (err) {
@@ -122,6 +142,34 @@ export default function EditReportModal({ report, onClose, onUpdated }) {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="form-label">Report Photo</label>
+            <div style={{ display:'flex', gap:12, alignItems:'center', marginTop:6 }}>
+              <div style={{
+                width:80, height:80, borderRadius:8, overflow:'hidden',
+                background:'#f3f4f6', border:'1px solid #e5e7eb',
+                display:'grid', placeItems:'center', fontSize:'1.5rem', flexShrink:0
+              }}>
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                ) : (
+                  '🛣️'
+                )}
+              </div>
+              <label htmlFor="edit-report-image" className="btn-outline" style={{ cursor:'pointer', padding:'8px 14px', fontSize:'0.84rem' }}>
+                Change Photo
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display:'none' }}
+                id="edit-report-image"
+              />
+            </div>
           </div>
 
           {/* Buttons */}

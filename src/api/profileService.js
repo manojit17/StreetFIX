@@ -36,11 +36,15 @@ export const getMyReports = async () => {
   return data
 }
 
-export const updateReport = async (id, fields) => {
+// ✅ UPDATED: Now receives a FormData object instead of JSON to support photo uploads
+export const updateReport = async (id, formData) => {
   const res  = await fetch(`${BASE}/reports/${id}`, {
     method : 'PUT',
-    headers: authHeaders(),
-    body   : JSON.stringify(fields),
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      // Note: Do NOT set Content-Type header when sending FormData!
+    },
+    body   : formData,
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.message || 'Failed to update report')
