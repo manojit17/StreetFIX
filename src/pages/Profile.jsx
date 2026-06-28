@@ -53,6 +53,8 @@ export default function Profile({ navigate }) {
 
   // Profile edit
   const [profileForm,    setProfileForm]    = useState({ name: user?.name || '', email: user?.email || '' })
+  const [avatarFile,     setAvatarFile]     = useState(null)
+  const [avatarPreview,  setAvatarPreview]  = useState(user?.avatar || '')
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError,   setProfileError]   = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
@@ -89,18 +91,49 @@ export default function Profile({ navigate }) {
     fetchReports()
   }, [])
 
+  // Sync state if user loads later
+  useEffect(() => {
+    if (user) {
+      setProfileForm({ name: user.name, email: user.email })
+      setAvatarPreview(user.avatar || '')
+    }
+  }, [user])
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
+      setProfileError('')
+      setProfileSuccess('')
+    }
+  }
+
   const handleProfileSave = async () => {
     if (!profileForm.name.trim() || !profileForm.email.trim()) {
       setProfileError('Name and email are required'); return
     }
     setProfileLoading(true); setProfileError(''); setProfileSuccess('')
     try {
-      const data = await updateProfile(profileForm.name, profileForm.email)
-      const updatedUser = { ...user, name: data.user.name, email: data.user.email }
+      const formData = new FormData()
+      formData.append('name', profileForm.name)
+      formData.append('email', profileForm.email)
+      if (avatarFile) {
+        formData.append('avatar', avatarFile)
+      }
+
+      const data = await updateProfile(formData)
+      const updatedUser = { 
+        ...user, 
+        name: data.user.name, 
+        email: data.user.email, 
+        avatar: data.user.avatar 
+      }
       localStorage.setItem('sf-user', JSON.stringify(updatedUser))
       saveAuth(localStorage.getItem('sf-token'), updatedUser)
       setProfileSuccess('Profile updated successfully!')
-      showToast('✅', 'Profile Updated', 'Your name and email have been saved.')
+      setAvatarFile(null)
+      showToast('✅', 'Profile Updated', 'Your profile details and photo have been saved.')
     } catch (err) {
       setProfileError(err.message)
     } finally {
@@ -159,10 +192,16 @@ export default function Profile({ navigate }) {
 
       {/* Avatar card */}
       <div className="card-static" style={{ padding:24, marginBottom:20, display:'flex', alignItems:'center', gap:20 }}>
-        <div style={{ width:72, height:72, background:'#1e3a5f', borderRadius:'50%',
-                      display:'grid', placeItems:'center', fontSize:'1.5rem', fontWeight:700,
-                      color:'white', fontFamily:'Poppins,sans-serif', flexShrink:0 }}>
-          {initials}
+        <div style={{ width:72, height:72, borderRadius:'50%', overflow:'hidden',
+                      background:'#1e3a5f', border:'2px solid #1e3a5f', display:'grid', 
+                      placeItems:'center', flexShrink:0 }}>
+          {user?.avatar ? (
+            <img src={user.avatar} alt="Avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+          ) : (
+            <div style={{ fontSize:'1.5rem', fontWeight:700, color:'white', fontFamily:'Poppins,sans-serif' }}>
+              {initials}
+            </div>
+          )}
         </div>
         <div>
           <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.2rem', marginBottom:2 }}>
@@ -203,6 +242,32 @@ export default function Profile({ navigate }) {
             <SectionTitle icon={<User size={16}/>}>Personal Information</SectionTitle>
             {profileError   && <ErrorBox   msg={profileError}   />}
             {profileSuccess && <SuccessBox msg={profileSuccess} />}
+
+            {/* Profile Photo Upload Field */}
+            <div style={{ display:'flex', gap:16, alignItems:'center', marginBottom:18 }}>
+              <div style={{ width:60, height:60, borderRadius:'50%', overflow:'hidden',
+                            background:'#f3f4f6', border:'1px solid #e5e7eb',
+                            display:'grid', placeItems:'center', flexShrink:0 }}>
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar Preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                ) : (
+                  <div style={{ fontSize:'1.2rem', fontWeight:700, color:'#1e3a5f', fontFamily:'Poppins,sans-serif' }}>
+                    {initials}
+                  </div>
+                )}
+              </div>
+              <label htmlFor="profile-avatar-input" className="btn-outline" style={{ cursor:'pointer', padding:'8px 14px', fontSize:'0.82rem' }}>
+                Change Photo
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                id="profile-avatar-input"
+                onChange={handleAvatarChange}
+                style={{ display:'none' }}
+              />
+            </div>
+
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div>
                 <label className="form-label">Full Name</label>
