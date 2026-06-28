@@ -102,7 +102,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             {/* Auth area */}
             {isLoggedIn ? (
               <>
-                {/* ✅ CHANGE: Avatar now clickable — opens Profile page */}
+                {/* Clickable Avatar circle */}
                 <div
                   onClick={() => navigate('profile')}
                   title="My Profile"
@@ -110,6 +110,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                     width:36, height:36,
                     background:'#1e3a5f',
                     borderRadius:'50%',
+                    overflow:'hidden', // ✅ Prevents photo from overflowing the circle border
                     display:'grid', placeItems:'center',
                     fontSize:'0.74rem', fontWeight:700,
                     color:'white', flexShrink:0,
@@ -126,7 +127,16 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                     e.currentTarget.style.transform   = 'scale(1)'
                   }}
                 >
-                  {initials}
+                  {/* ✅ Show profile picture if it exists, otherwise show initials */}
+                  {user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="Avatar" 
+                      style={{ width:'100%', height:'100%', objectFit:'cover' }} 
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
 
                 {!isMobile && (
@@ -204,7 +214,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             </button>
           ))}
 
-          {/* ✅ CHANGE: Profile link in mobile menu */}
+          {/* Profile link in mobile menu */}
           {isLoggedIn && (
             <button
               className="nav-link"
