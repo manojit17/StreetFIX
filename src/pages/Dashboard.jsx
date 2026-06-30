@@ -1,11 +1,10 @@
 // Dashboard.jsx — fully mobile responsive + real backend data throughout
+// PHASE 1 UPDATE: added SupportButton (upvote) to each report card in My Reports tab
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import Badge from '../components/Badge'
+import SupportButton from '../components/SupportButton'
 
-// ── NOTIFS stays placeholder for now — needs a separate backend
-// notification system (not built yet). Activity feed below the
-// Overview tab is also still placeholder for the same reason. ──
 const NOTIFS = [
   { dot:'#10b981', title:'✅ Issue #1042 Resolved — Pothole at MG Road', desc:'PWD has completed repairs. Your report made this happen!', time:'2h ago', unread:true },
   { dot:'#3b82f6', title:'🔧 Status Update — Road construction at NH-48', desc:'NHAI has assigned a team to address your report.', time:'5h ago', unread:true },
@@ -19,7 +18,6 @@ const formatDate = (iso) => {
   return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
 }
 
-// "2h ago" style relative time, used for the real Recent Activity feed
 const timeAgo = (iso) => {
   if (!iso) return ''
   const diffMs = Date.now() - new Date(iso).getTime()
@@ -31,7 +29,6 @@ const timeAgo = (iso) => {
   return `${days}d ago`
 }
 
-// Guess a category keyword from the report title, used for Issue Breakdown
 const categoriseTitle = (title = '') => {
   const t = title.toLowerCase()
   if (t.includes('pothole'))      return 'Potholes'
@@ -51,10 +48,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
   const [search,   setSearch]   = useState('')
   const [lightbox, setLightbox] = useState(null)
 
-  // ── Fetch the logged-in user's real reports once on mount ──────
-  // (moved out of the tab-specific effect so BOTH Overview and
-  // My Reports tabs can use the same real data without re-fetching
-  // every time you switch tabs)
   useEffect(() => {
     const fetchMyReports = async () => {
       setLoading(true)
@@ -85,20 +78,23 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
     fetchMyReports()
   }, [])
 
-  // ── Derived stats from real report data ──────────────────────
+  // ── PHASE 1: handle a SupportButton update by patching that one
+  // report in local state, so the UI updates instantly without a
+  // full re-fetch from the server ──
+  const handleSupportUpdate = (updatedReport) => {
+    setReports(prev => prev.map(r => r._id === updatedReport._id ? updatedReport : r))
+  }
+
   const totalCount      = reports.length
   const resolvedCount   = reports.filter(r => r.status === 'Resolved').length
   const inProgressCount = reports.filter(r => r.status === 'In Progress').length
   const pendingCount    = reports.filter(r => r.status === 'Pending').length
 
-  // Resolution rate as a real percentage (0 if no reports yet, to avoid NaN)
   const resolutionRate = totalCount === 0 ? 0 : Math.round((resolvedCount / totalCount) * 100)
 
-  // Circle progress math for the SVG ring (radius 28 → circumference ≈ 176)
   const circumference   = 176
   const strokeDashoffset = circumference - (circumference * resolutionRate) / 100
 
-  // ── Real Issue Breakdown — tally categories from actual report titles ──
   const breakdownCategories = ['Potholes', 'Construction', 'Street Lights', 'Waterlogging']
   const breakdownColors = {
     'Potholes'      : '#ff6b35',
@@ -112,12 +108,8 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
       const pct   = totalCount === 0 ? 0 : Math.round((count / totalCount) * 100)
       return { label: cat, count, pct, color: breakdownColors[cat] }
     })
-    .filter(c => c.count > 0) // only show categories that actually have reports
+    .filter(c => c.count > 0)
 
-  // ── Real Recent Activity — derived from your most recent reports ──
-  // (a true "activity log" with status-change history needs a separate
-  // backend feature; for now we show your latest report submissions
-  // as a meaningful real activity feed instead of fake data)
   const recentActivity = [...reports]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5)
@@ -128,7 +120,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
       time : timeAgo(r.createdAt),
     }))
 
-  // ── Search filter for My Reports tab ──────────────────────────
   const filteredReports = reports.filter(r => {
     const q = search.toLowerCase()
     return !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
@@ -149,7 +140,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
 
       <div className="page-container" style={{ paddingBottom:48 }}>
 
-        {/* ── Stat cards — real counts ── */}
+        {/* ── Stat cards ── */}
         <div className="stats-grid" style={{ margin:'22px 0' }}>
           {[
             { icon:'📝', iconBg:'rgba(30,58,95,0.08)', val: totalCount,      label:'Total Reports' },
@@ -174,11 +165,10 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           ))}
         </div>
 
-        {/* ── OVERVIEW TAB — NOW REAL DATA ── */}
+        {/* ── OVERVIEW TAB ── */}
         {tab === 'overview' && (
           <div className="dashboard-grid">
 
-            {/* Recent Activity — real, derived from your latest reports */}
             <div className="card-static" style={{ overflow:'hidden' }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem' }}>Recent Activity</h3>
@@ -209,7 +199,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
 
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
-              {/* Issue Breakdown — real tally from your report titles */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Issue Breakdown</h3>
                 {issueBreakdown.length === 0 ? (
@@ -226,7 +215,6 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
                 )}
               </div>
 
-              {/* Resolution Rate — real percentage from your actual reports */}
               <div className="card-static" style={{ padding:18 }}>
                 <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', marginBottom:13 }}>Resolution Rate</h3>
                 <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
@@ -258,7 +246,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* ── MY REPORTS TAB ── */}
+        {/* ── MY REPORTS TAB — now includes SupportButton on each card ── */}
         {tab === 'myreports' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10 }}>
@@ -321,9 +309,16 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
                       <p style={{ fontSize:'0.8rem', color:'#6b7280', marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
                         {r.description}
                       </p>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.74rem', color:'#9ca3af' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.74rem', color:'#9ca3af', marginBottom:10 }}>
                         <span>Severity: {r.severity}</span>
                         <span>{formatDate(r.createdAt)}</span>
+                      </div>
+
+                      {/* PHASE 1: support/upvote button — sits below the meta row,
+                          above the (future) edit/delete buttons that will be added
+                          in a later phase */}
+                      <div style={{ display:'flex', justifyContent:'flex-start' }}>
+                        <SupportButton report={r} onUpdate={handleSupportUpdate} />
                       </div>
                     </div>
                   </div>
@@ -333,7 +328,7 @@ export default function Dashboard({ navigate, initialTab = 'overview' }) {
           </div>
         )}
 
-        {/* ── NOTIFICATIONS TAB — still placeholder, needs backend notification system ── */}
+        {/* ── NOTIFICATIONS TAB ── */}
         {tab === 'notifications' && (
           <div className="card-static" style={{ overflow:'hidden' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
