@@ -1,6 +1,7 @@
 // Landing.jsx — floating cards + stats show logged-in user's OWN reports
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import SupportButton from '../components/SupportButton'
 
 const FEATURES = [
   { icon:'📍', title:'Real Map Integration', desc:'See every reported issue on an interactive map. Filter by status, type, or location to understand your city road health at a glance.' },

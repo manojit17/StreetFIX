@@ -1,4 +1,4 @@
-import SupportButton from '../components/SupportButton'
+
 <SupportButton
   report={r}
   onUpdate={(updatedReport) => {

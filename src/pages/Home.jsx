@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import Badge from '../components/Badge'
+import SupportButton from '../components/SupportButton'
 
 const statusToProgress = (status) => {
   if (status === 'Resolved')    return { pct: 100, color: '#10b981' }

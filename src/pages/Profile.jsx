@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext'
 import { updateProfile, changePassword, getMyReports } from '../api/profileService'
 import EditReportModal    from '../components/EditReportModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
-
+import SupportButton from '../components/SupportButton'
 const SEV_COLORS = {
   Low     : { bg:'rgba(16,185,129,0.1)',  color:'#065f46' },
   Medium  : { bg:'rgba(245,158,11,0.1)',  color:'#92400e' },
