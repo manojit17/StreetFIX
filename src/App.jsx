@@ -28,7 +28,7 @@ export default function App() {
      case 'profile'  : return <Profile   navigate={navigate} />   
      default         : return <Landing   navigate={navigate} />
      case 'community': return <Community navigate={navigate} />
-     case 'VerifyIssue': return <VerifyIssues navigate={navigate}/>
+     case 'Verify': return <VerifyIssues navigate={navigate}/>
    }
  }
 
