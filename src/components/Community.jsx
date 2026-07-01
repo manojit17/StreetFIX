@@ -1,5 +1,5 @@
 // Community.jsx — replaces Overview page
-// Facebook-style feed with 4 tabs: All Reports | Nearby | Trending | Leaderboard
+// Feed with 4 tabs: All Reports | Nearby | Trending | Leaderboard
 // Each report card supports: upvote, comment, view details
 
 import { useState, useEffect } from 'react'
