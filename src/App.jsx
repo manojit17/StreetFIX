@@ -9,6 +9,7 @@ import ReportIssue from './pages/ReportIssue'
 import IssueMap from './pages/IssueMap'
 import Profile from './pages/Profile'
 import Community from './pages/Community'
+import VerifyIssues from './pages/VerifyIssues'
 
 export default function App() {
   const [page, setPage] = useState('landing')
@@ -27,6 +28,7 @@ export default function App() {
      case 'profile'  : return <Profile   navigate={navigate} />   
      default         : return <Landing   navigate={navigate} />
      case 'community': return <Community navigate={navigate} />
+     case 'VerifyIssue': return <VerifyIssues navigate={navigate}/>
    }
  }
 
