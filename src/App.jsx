@@ -9,7 +9,7 @@ import ReportIssue from './pages/ReportIssue'
 import IssueMap from './pages/IssueMap'
 import Profile from './pages/Profile'
 import Community from './pages/Community'
-import VerifyIssue from './pages/VerifyIssues'
+import VerifyIssues from './pages/VerifyIssues'
 
 export default function App() {
   const [page, setPage] = useState('landing')
