@@ -20,17 +20,17 @@ export default function App() {
   }
 
  const renderPage = () => {
-   switch (page) {
-     case 'landing'  : return <Landing   navigate={navigate} />
-     case 'dashboard': return <Dashboard navigate={navigate} />
-     case 'report'   : return <ReportIssue navigate={navigate} />
-     case 'map'      : return <IssueMap  navigate={navigate} />
-     case 'profile'  : return <Profile   navigate={navigate} />   
-     default         : return <Landing   navigate={navigate} />
-     case 'community': return <Community navigate={navigate} />
-     case 'verify'   : return <VerifyIssues navigate={navigate} />
+  switch (page) {
+    case 'landing'  : return <Landing   navigate={navigate} />
+    case 'dashboard': return <Dashboard navigate={navigate} />
+    case 'report'   : return <ReportIssue navigate={navigate} />
+    case 'map'      : return <IssueMap  navigate={navigate} />
+    case 'profile'  : return <Profile   navigate={navigate} />
+    case 'community': return <Community navigate={navigate} />
+    case 'verify'   : return <VerifyIssues navigate={navigate} />
     default         : return <Landing   navigate={navigate} />
-   }
+  }
+
  }
 
   return (
