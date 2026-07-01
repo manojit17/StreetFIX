@@ -6,6 +6,7 @@ import { updateProfile, changePassword, getMyReports } from '../api/profileServi
 import EditReportModal    from '../components/EditReportModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import SupportButton from '../components/SupportButton'
+import Community from './pages/Community'
 const SEV_COLORS = {
   Low     : { bg:'rgba(16,185,129,0.1)',  color:'#065f46' },
   Medium  : { bg:'rgba(245,158,11,0.1)',  color:'#92400e' },
@@ -178,7 +179,7 @@ export default function Profile({ navigate }) {
     <div style={{ maxWidth:800, margin:'0 auto', padding:'36px 20px 60px' }}>
 
       {/* Back button */}
-      <button onClick={() => navigate('home')}
+      <button onClick={() => navigate('community')}
         style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7280',
                  fontSize:'0.86rem', marginBottom:12, display:'flex', alignItems:'center',
                  gap:6, padding:0, fontFamily:'Inter,sans-serif' }}>

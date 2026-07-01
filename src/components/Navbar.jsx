@@ -1,4 +1,5 @@
-// Navbar.jsx — fully fixed, reads notifOpen from AppContext
+// Navbar.jsx — updated with confirmed nav order:
+// Home | Community | Report Issue | Verify Issues | Dashboard | [🔔] [avatar→Profile]
 import { useState, useEffect } from 'react'
 import { Bell, Menu, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
@@ -22,11 +23,14 @@ export default function Navbar({ currentPage, setCurrentPage }) {
   const [authModal,  setAuthModal]  = useState(null)
   const isMobile = useIsMobile(768)
 
+  // ── CONFIRMED NAV ORDER ──────────────────────────────────────
+  // Home | Community | Report Issue | Verify Issues | Dashboard
   const links = [
-    { id:'landing',   label:'Home'         },
-    { id:'home',      label:'Overview'     },
-    { id:'dashboard', label:'Dashboard'    },
-    { id:'report',    label:'Report Issue' },
+    { id:'landing',  label:'Home'          },
+    { id:'community',label:'Community'     },
+    { id:'report',   label:'Report Issue'  },
+    { id:'verify',   label:'Verify Issues' },
+    { id:'dashboard',label:'Dashboard'     },
   ]
 
   const navigate = (page) => {
@@ -102,21 +106,15 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             {/* Auth area */}
             {isLoggedIn ? (
               <>
-                {/* Clickable Avatar circle */}
+                {/* Clickable avatar → Profile page */}
                 <div
                   onClick={() => navigate('profile')}
                   title="My Profile"
                   style={{
-                    width:36, height:36,
-                    background:'#1e3a5f',
-                    borderRadius:'50%',
-                    overflow:'hidden', // ✅ Prevents photo from overflowing the circle border
-                    display:'grid', placeItems:'center',
-                    fontSize:'0.74rem', fontWeight:700,
-                    color:'white', flexShrink:0,
-                    cursor:'pointer',
-                    border:'2px solid transparent',
-                    transition:'all 0.2s',
+                    width:36, height:36, background:'#1e3a5f', borderRadius:'50%',
+                    overflow:'hidden', display:'grid', placeItems:'center',
+                    fontSize:'0.74rem', fontWeight:700, color:'white', flexShrink:0,
+                    cursor:'pointer', border:'2px solid transparent', transition:'all 0.2s',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = '#ff6b35'
@@ -127,18 +125,11 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                     e.currentTarget.style.transform   = 'scale(1)'
                   }}
                 >
-                  {/* ✅ Show profile picture if it exists, otherwise show initials */}
-                  {user?.avatar ? (
-                    <img 
-                      src={user.avatar} 
-                      alt="Avatar" 
-                      style={{ width:'100%', height:'100%', objectFit:'cover' }} 
-                    />
-                  ) : (
-                    initials
-                  )}
+                  {user?.avatar
+                    ? <img src={user.avatar} alt="Avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : initials
+                  }
                 </div>
-
                 {!isMobile && (
                   <button className="nav-link btn-sm" onClick={logout}>Logout</button>
                 )}
@@ -171,7 +162,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
       {/* Notification panel */}
       {notifOpen && (
         <div style={isMobile
-          ? { position:'fixed', top:64, left:8, right:8, width:'auto', maxWidth:'none',
+          ? { position:'fixed', top:64, left:8, right:8, width:'auto',
               zIndex:51, borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.14)',
               background:'#ffffff', overflow:'hidden' }
           : { position:'fixed', top:64, right:24, width:320,
@@ -180,12 +171,8 @@ export default function Navbar({ currentPage, setCurrentPage }) {
         }>
           <div style={{ padding:'13px 16px', borderBottom:'1px solid #f3f4f6',
                         display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <h4 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', margin:0 }}>
-              Notifications
-            </h4>
-            <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }} onClick={closeNotif}>
-              Close
-            </button>
+            <h4 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', margin:0 }}>Notifications</h4>
+            <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }} onClick={closeNotif}>Close</button>
           </div>
           <div style={{ padding:'32px 16px', textAlign:'center', color:'#9ca3af' }}>
             <div style={{ fontSize:'1.8rem', marginBottom:8 }}>🔔</div>
@@ -214,13 +201,10 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             </button>
           ))}
 
-          {/* Profile link in mobile menu */}
           {isLoggedIn && (
-            <button
-              className="nav-link"
+            <button className="nav-link"
               style={{ display:'block', width:'100%', textAlign:'left', marginBottom:4, padding:'10px 14px' }}
-              onClick={() => navigate('profile')}
-            >
+              onClick={() => navigate('profile')}>
               👤 My Profile
             </button>
           )}
