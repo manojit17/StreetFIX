@@ -6,7 +6,6 @@ import { updateProfile, changePassword, getMyReports } from '../api/profileServi
 import EditReportModal    from '../components/EditReportModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import SupportButton from '../components/SupportButton'
-// import Community from './pages/Community'
 
 const SEV_COLORS = {
   Low     : { bg:'rgba(16,185,129,0.1)',  color:'#065f46' },

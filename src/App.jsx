@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import ReportIssue from './pages/ReportIssue'
 import IssueMap from './pages/IssueMap'
 import Profile from './pages/Profile'
+import Community from './pages/Community'
 
 export default function App() {
   const [page, setPage] = useState('landing')
@@ -20,12 +21,12 @@ export default function App() {
  const renderPage = () => {
    switch (page) {
      case 'landing'  : return <Landing   navigate={navigate} />
-     case 'home'     : return <Home      navigate={navigate} />
      case 'dashboard': return <Dashboard navigate={navigate} />
      case 'report'   : return <ReportIssue navigate={navigate} />
      case 'map'      : return <IssueMap  navigate={navigate} />
      case 'profile'  : return <Profile   navigate={navigate} />   
      default         : return <Landing   navigate={navigate} />
+     case 'community': return <Community navigate={navigate} />
    }
  }
 
