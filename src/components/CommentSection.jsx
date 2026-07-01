@@ -1,370 +1,226 @@
-// Community.jsx — replaces Overview page
-// Facebook-style feed with 4 tabs: All Reports | Nearby | Trending | Leaderboard
-// Each report card supports: upvote, comment, view details
+// components/CommentSection.jsx
+// Reusable comment thread — drop this into any report card.
+// Shows existing comments + a text input to add new ones.
+// Delete button appears only on your own comments.
 
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import SupportButton from '../components/SupportButton'
-import CommentSection from '../components/CommentSection'
 
 const API = import.meta.env.VITE_API_URL
 
-// Haversine formula — distance in meters between two GPS points
-function getDistanceInMeters(lat1, lng1, lat2, lng2) {
-  const R     = 6371000
-  const toRad = (d) => d * (Math.PI / 180)
-  const dLat  = toRad(lat2 - lat1)
-  const dLng  = toRad(lng2 - lng1)
-  const a     = Math.sin(dLat / 2) ** 2 +
-                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
-
-// Format distance nicely
-const formatDistance = (m) => m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`
-
-// Trending score formula
-const trendingScore = (r) => {
-  const ageMs  = Date.now() - new Date(r.createdAt).getTime()
-  const ageH   = ageMs / 3600000
-  const boost  = ageH < 24 ? 10 : ageH < 72 ? 5 : ageH < 168 ? 2 : 0
-  return (r.supporters?.length || 0) * 2 + boost
-}
-
-// Relative time
+// "2h ago" style relative time
 const timeAgo = (iso) => {
   if (!iso) return ''
-  const mins = Math.floor((Date.now() - new Date(iso)) / 60000)
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const mins   = Math.floor(diffMs / 60000)
   if (mins < 60)  return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24)   return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+  const hours  = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
-// Status badge
-const statusStyle = (s) =>
-  s === 'Resolved'    ? { background:'#d1fae5', color:'#065f46' } :
-  s === 'In Progress' ? { background:'#dbeafe', color:'#1e40af' } :
-                        { background:'#fef3c7', color:'#92400e' }
+/**
+ * Props:
+ *  reportId  → the _id of the report this comment section belongs to
+ *  isOpen    → boolean — whether the comment section is expanded or collapsed
+ */
+export default function CommentSection({ reportId, isOpen }) {
+  const { user, isLoggedIn, showToast } = useApp()
 
-// ── Single Report Card ────────────────────────────────────────
-function ReportCard({ report: initialReport, distance, onUpdate }) {
-  const { isLoggedIn, showToast } = useApp()
-  const [report,       setReport]       = useState(initialReport)
-  const [commentOpen,  setCommentOpen]  = useState(false)
+  const [comments,     setComments]     = useState([])
+  const [loading,      setLoading]      = useState(false)
+  const [text,         setText]         = useState('')
+  const [posting,      setPosting]      = useState(false)
+  const [deletingId,   setDeletingId]   = useState(null)
+  const [fetched,      setFetched]      = useState(false) // only fetch once per open
 
-  // Keep local state in sync if parent updates (e.g. support toggle)
-  useEffect(() => { setReport(initialReport) }, [initialReport])
-
-  const handleSupportUpdate = (updated) => {
-    setReport(updated)
-    onUpdate?.(updated)
-  }
-
-  return (
-    <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12,
-                  overflow:'hidden', marginBottom:16 }}>
-
-      {/* ── Card header — poster info ── */}
-      <div style={{ padding:'14px 16px 10px', display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ width:36, height:36, borderRadius:'50%', background:'#1e3a5f',
-                     display:'grid', placeItems:'center', fontSize:'0.75rem',
-                     fontWeight:700, color:'#fff', flexShrink:0 }}>
-          {report.userId?.name?.charAt(0)?.toUpperCase() || '?'}
-        </div>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontWeight:600, fontSize:'0.88rem' }}>{report.userId?.name || 'Anonymous'}</div>
-          <div style={{ fontSize:'0.74rem', color:'#9ca3af' }}>
-            {timeAgo(report.createdAt)}
-            {distance !== undefined && ` • 📍 ${formatDistance(distance)} away`}
-          </div>
-        </div>
-        <span style={{ padding:'3px 10px', borderRadius:20, fontSize:'0.74rem', fontWeight:600, ...statusStyle(report.status) }}>
-          {report.status}
-        </span>
-      </div>
-
-      {/* ── Report content ── */}
-      <div style={{ padding:'0 16px 12px' }}>
-        <div style={{ fontWeight:700, fontSize:'0.95rem', marginBottom:4 }}>{report.title}</div>
-        <p style={{ fontSize:'0.84rem', color:'#6b7280', lineHeight:1.5, marginBottom:8 }}>
-          {report.description}
-        </p>
-        <div style={{ fontSize:'0.76rem', color:'#9ca3af' }}>
-          Severity: <span style={{ fontWeight:600, color:'#374151' }}>{report.severity}</span>
-        </div>
-      </div>
-
-      {/* ── Photo ── */}
-      {report.image && (
-        <img src={report.image} alt={report.title}
-          style={{ width:'100%', maxHeight:280, objectFit:'cover', display:'block' }} />
-      )}
-
-      {/* ── Engagement counts row ── */}
-      <div style={{ padding:'10px 16px', borderTop:'1px solid #f3f4f6', borderBottom:'1px solid #f3f4f6',
-                    display:'flex', gap:16, fontSize:'0.78rem', color:'#6b7280' }}>
-        <span>👍 {report.supporters?.length || 0} supports</span>
-        <span>💬 {report.commentCount || 0} comments</span>
-      </div>
-
-      {/* ── Action buttons ── */}
-      <div style={{ padding:'10px 16px', display:'flex', gap:8, flexWrap:'wrap' }}>
-        {/* Support/upvote button */}
-        <SupportButton report={report} onUpdate={handleSupportUpdate} />
-
-        {/* Comment toggle button */}
-        <button
-          onClick={() => {
-            if (!isLoggedIn) { showToast('🔒', 'Login Required', 'Please sign in to comment.'); return }
-            setCommentOpen(o => !o)
-          }}
-          style={{
-            display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
-            borderRadius:20, border:`1px solid ${commentOpen ? '#1e3a5f' : '#e5e7eb'}`,
-            background: commentOpen ? '#f0f4ff' : '#ffffff',
-            color: commentOpen ? '#1e3a5f' : '#6b7280',
-            fontSize:'0.82rem', fontWeight:600, cursor:'pointer',
-          }}>
-          💬 Comment
-        </button>
-      </div>
-
-      {/* ── Comment section (expands on click) ── */}
-      <CommentSection reportId={report._id} isOpen={commentOpen} />
-    </div>
-  )
-}
-
-// ── Leaderboard Row ───────────────────────────────────────────
-function LeaderboardRow({ rank, name, score, reports, verifications }) {
-  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 0',
-                  borderBottom:'1px solid #f3f4f6' }}>
-      <div style={{ width:32, textAlign:'center', fontWeight:700, fontSize:'0.9rem' }}>{medal}</div>
-      <div style={{ width:36, height:36, borderRadius:'50%', background:'#1e3a5f',
-                   display:'grid', placeItems:'center', fontSize:'0.75rem',
-                   fontWeight:700, color:'#fff', flexShrink:0 }}>
-        {name?.charAt(0)?.toUpperCase() || '?'}
-      </div>
-      <div style={{ flex:1 }}>
-        <div style={{ fontWeight:600, fontSize:'0.88rem' }}>{name}</div>
-        <div style={{ fontSize:'0.74rem', color:'#9ca3af' }}>{reports} reports • {verifications} verifications</div>
-      </div>
-      <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, color:'#ff6b35', fontSize:'0.95rem' }}>
-        {score}
-      </div>
-    </div>
-  )
-}
-
-// ── Main Community Page ───────────────────────────────────────
-export default function Community({ navigate }) {
-  const { isLoggedIn, showToast } = useApp()
-
-  const [tab,        setTab]        = useState('all')
-  const [allReports, setAllReports] = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [userLat,    setUserLat]    = useState(null)
-  const [userLng,    setUserLng]    = useState(null)
-  const [locLoading, setLocLoading] = useState(false)
-  const [leaderboard,setLeaderboard]= useState([])
-  const [lbLoading,  setLbLoading]  = useState(false)
-
-  // Fetch all reports on mount
+  // Fetch comments when the section is opened for the first time
   useEffect(() => {
-    const fetchAll = async () => {
+    if (!isOpen || fetched) return
+
+    const fetchComments = async () => {
       setLoading(true)
       try {
-        const res  = await fetch(`${API}/reports`)
+        const res  = await fetch(`${API}/comments/${reportId}`)
         const data = await res.json()
-        if (data.success) setAllReports(data.data || [])
+        if (data.success) setComments(data.data || [])
       } catch {
-        showToast('❌', 'Error', 'Could not load reports.')
-      } finally { setLoading(false) }
-    }
-    fetchAll()
-  }, [])
-
-  // Detect location when user clicks Nearby tab
-  const detectLocation = () => {
-    if (userLat) return // already have it
-    setLocLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude)
-        setUserLng(pos.coords.longitude)
-        setLocLoading(false)
-      },
-      () => {
-        showToast('⚠️', 'Location Denied', 'Allow location access to see nearby reports.')
-        setLocLoading(false)
+        showToast('❌', 'Error', 'Could not load comments.')
+      } finally {
+        setLoading(false)
+        setFetched(true)
       }
-    )
-  }
-
-  // Fetch leaderboard when tab selected
-  useEffect(() => {
-    if (tab !== 'leaderboard') return
-    const fetchLb = async () => {
-      setLbLoading(true)
-      try {
-        const res  = await fetch(`${API}/reports`)
-        const data = await res.json()
-        if (!data.success) return
-
-        // Build per-user stats from all reports
-        const userMap = {}
-        ;(data.data || []).forEach(r => {
-          const uid  = r.userId?._id || r.userId
-          const name = r.userId?.name || 'Anonymous'
-          if (!uid) return
-          if (!userMap[uid]) userMap[uid] = { name, reports:0, verifications:0, supports:0 }
-          userMap[uid].reports++
-        })
-
-        // Score formula: reports×5 + verifications×3 + supports×1
-        const lb = Object.values(userMap)
-          .map(u => ({ ...u, score: u.reports * 5 + u.verifications * 3 + u.supports }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10)
-
-        setLeaderboard(lb)
-      } catch {}
-      finally { setLbLoading(false) }
     }
-    fetchLb()
-  }, [tab])
 
-  // Update a single report in local state (after support toggle)
-  const handleUpdate = (updated) => {
-    setAllReports(prev => prev.map(r => r._id === updated._id ? updated : r))
+    fetchComments()
+  }, [isOpen, fetched, reportId])
+
+  // Post a new comment
+  const handlePost = async () => {
+    if (!isLoggedIn) {
+      showToast('🔒', 'Login Required', 'Please sign in to comment.')
+      return
+    }
+    if (!text.trim()) return
+
+    setPosting(true)
+    try {
+      const token = localStorage.getItem('sf-token')
+      const res   = await fetch(`${API}/comments/${reportId}`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body   : JSON.stringify({ text: text.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to post comment')
+
+      // Add new comment to top of local list instantly
+      setComments(prev => [...prev, data.data])
+      setText('')
+    } catch (err) {
+      showToast('❌', 'Error', err.message)
+    } finally {
+      setPosting(false)
+    }
   }
 
-  // ── Derived lists ─────────────────────────────────────────────
-  const nearbyReports = userLat
-    ? allReports
-        .map(r => ({ ...r, distance: getDistanceInMeters(userLat, userLng, r.latitude, r.longitude) }))
-        .filter(r => r.distance <= 5000)
-        .sort((a, b) => a.distance - b.distance)
-    : []
+  // Delete a comment
+  const handleDelete = async (commentId) => {
+    setDeletingId(commentId)
+    try {
+      const token = localStorage.getItem('sf-token')
+      const res   = await fetch(`${API}/comments/${commentId}`, {
+        method : 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to delete comment')
 
-  const trendingReports = [...allReports]
-    .sort((a, b) => trendingScore(b) - trendingScore(a))
-    .slice(0, 20)
-
-  const TABS = [
-    { id:'all',         label:'🌐 All Reports' },
-    { id:'nearby',      label:'📍 Nearby'      },
-    { id:'trending',    label:'🔥 Trending'    },
-    { id:'leaderboard', label:'🏆 Leaderboard' },
-  ]
-
-  const renderFeed = (reports, showDistance = false) => {
-    if (loading) return (
-      <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>Loading reports...</div>
-    )
-    if (reports.length === 0) return (
-      <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
-        <p style={{ fontSize:'2rem', marginBottom:8 }}>📭</p>
-        <p>No reports to show here yet.</p>
-      </div>
-    )
-    return reports.map(r => (
-      <ReportCard
-        key={r._id}
-        report={r}
-        distance={showDistance ? r.distance : undefined}
-        onUpdate={handleUpdate}
-      />
-    ))
+      setComments(prev => prev.filter(c => c._id !== commentId))
+      showToast('🗑️', 'Deleted', 'Comment removed.')
+    } catch (err) {
+      showToast('❌', 'Error', err.message)
+    } finally {
+      setDeletingId(null)
+    }
   }
+
+  // Handle Enter key to post (Shift+Enter for new line)
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handlePost()
+    }
+  }
+
+  if (!isOpen) return null
 
   return (
-    <div style={{ background:'#f3f4f6', minHeight:'100vh' }}>
+    <div style={{ borderTop: '1px solid #f3f4f6', padding: '12px 14px 14px' }}>
 
-      {/* ── Header ── */}
-      <div style={{ background:'linear-gradient(135deg,#1e3a5f 0%,#1e40af 100%)', padding:'28px 0 20px' }}>
-        <div className="page-container">
-          <h1 style={{ color:'#fff', fontSize:'1.6rem', marginBottom:4 }}>🌍 Community</h1>
-          <p style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.88rem' }}>
-            See what citizens are reporting. Support, comment, and verify issues near you.
-          </p>
-        </div>
-      </div>
+      {/* Loading state */}
+      {loading && (
+        <p style={{ fontSize: '0.8rem', color: '#9ca3af', textAlign: 'center', padding: '8px 0' }}>
+          Loading comments...
+        </p>
+      )}
 
-      <div className="page-container" style={{ paddingTop:20, paddingBottom:48 }}>
+      {/* Comment list */}
+      {!loading && comments.length === 0 && (
+        <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: 10 }}>
+          No comments yet. Be the first!
+        </p>
+      )}
 
-        {/* ── Tab bar ── */}
-        <div className="tab-bar" style={{ marginBottom:20 }}>
-          {TABS.map(t => (
-            <button key={t.id}
-              className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-              onClick={() => {
-                setTab(t.id)
-                if (t.id === 'nearby') detectLocation()
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+      {!loading && comments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+          {comments.map(c => {
+            const isOwn = user && (user._id === c.userId?._id || user.id === c.userId?._id)
+            return (
+              <div key={c._id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                {/* Avatar */}
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: '#1e3a5f', display: 'grid', placeItems: 'center',
+                  fontSize: '0.65rem', fontWeight: 700, color: '#fff', flexShrink: 0,
+                }}>
+                  {c.userId?.name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
 
-        {/* ── ALL REPORTS TAB ── */}
-        {tab === 'all' && (
-          <div style={{ maxWidth:640, margin:'0 auto' }}>
-            {renderFeed(allReports)}
-          </div>
-        )}
-
-        {/* ── NEARBY TAB ── */}
-        {tab === 'nearby' && (
-          <div style={{ maxWidth:640, margin:'0 auto' }}>
-            {locLoading && (
-              <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
-                Detecting your location...
+                {/* Comment bubble */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    background: '#f9fafb', borderRadius: 8, padding: '7px 10px',
+                    fontSize: '0.82rem', color: '#111827', lineHeight: 1.5,
+                  }}>
+                    <span style={{ fontWeight: 600, color: '#1e3a5f', marginRight: 6 }}>
+                      {c.userId?.name || 'User'}
+                    </span>
+                    {c.text}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 3 }}>
+                    <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{timeAgo(c.createdAt)}</span>
+                    {isOwn && (
+                      <button
+                        onClick={() => handleDelete(c._id)}
+                        disabled={deletingId === c._id}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: '0.72rem', color: '#ef4444', padding: 0,
+                          opacity: deletingId === c._id ? 0.5 : 1,
+                        }}>
+                        {deletingId === c._id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
-            {!locLoading && !userLat && (
-              <div style={{ padding:40, textAlign:'center', color:'#6b7280' }}>
-                <p style={{ fontSize:'2rem', marginBottom:8 }}>📍</p>
-                <p style={{ marginBottom:12 }}>Allow location access to see reports near you.</p>
-                <button className="btn-accent" onClick={detectLocation}>Detect My Location</button>
-              </div>
-            )}
-            {!locLoading && userLat && renderFeed(nearbyReports, true)}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
 
-        {/* ── TRENDING TAB ── */}
-        {tab === 'trending' && (
-          <div style={{ maxWidth:640, margin:'0 auto' }}>
-            {renderFeed(trendingReports)}
+      {/* Input row */}
+      {isLoggedIn ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          {/* Current user avatar */}
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%', background: '#ff6b35',
+            display: 'grid', placeItems: 'center', fontSize: '0.65rem',
+            fontWeight: 700, color: '#fff', flexShrink: 0,
+          }}>
+            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
-        )}
-
-        {/* ── LEADERBOARD TAB ── */}
-        {tab === 'leaderboard' && (
-          <div style={{ maxWidth:560, margin:'0 auto' }}>
-            <div className="card-static" style={{ padding:20 }}>
-              <h3 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.95rem', marginBottom:4 }}>
-                🏆 Top Citizens
-              </h3>
-              <p style={{ fontSize:'0.78rem', color:'#9ca3af', marginBottom:16 }}>
-                Score = Reports×5 + Verifications×3 + Supports×1
-              </p>
-              {lbLoading && <p style={{ color:'#9ca3af', fontSize:'0.85rem' }}>Loading...</p>}
-              {!lbLoading && leaderboard.length === 0 && (
-                <p style={{ color:'#9ca3af', fontSize:'0.85rem' }}>No data yet.</p>
-              )}
-              {!lbLoading && leaderboard.map((u, i) => (
-                <LeaderboardRow key={i} rank={i + 1} name={u.name}
-                  score={u.score} reports={u.reports} verifications={u.verifications} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Write a comment... (Enter to post)"
+            rows={1}
+            style={{
+              flex: 1, borderRadius: 8, border: '1px solid #e5e7eb',
+              padding: '7px 10px', fontSize: '0.82rem', resize: 'none',
+              fontFamily: 'inherit', outline: 'none', lineHeight: 1.5,
+            }}
+          />
+          <button
+            onClick={handlePost}
+            disabled={posting || !text.trim()}
+            style={{
+              padding: '7px 14px', borderRadius: 8, border: 'none',
+              background: posting || !text.trim() ? '#e5e7eb' : '#1e3a5f',
+              color: posting || !text.trim() ? '#9ca3af' : '#fff',
+              fontWeight: 600, fontSize: '0.82rem', cursor: posting ? 'default' : 'pointer',
+              flexShrink: 0,
+            }}>
+            {posting ? '...' : 'Post'}
+          </button>
+        </div>
+      ) : (
+        <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+          <span style={{ color: '#1e3a5f', fontWeight: 600, cursor: 'pointer' }}>Sign in</span> to leave a comment.
+        </p>
+      )}
     </div>
   )
 }
