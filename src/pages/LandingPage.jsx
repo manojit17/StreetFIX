@@ -6,7 +6,7 @@ const features = [
   { icon: <MapPin size={22} />, title: 'Real Map Integration', desc: 'See every reported issue on an interactive map. Filter by status, type, or location to understand your city\'s road health.' },
   { icon: <Bell size={22} />, title: 'Live Notifications', desc: 'Get real-time updates when your report changes status. Never wonder if someone\'s acting on your complaint.' },
   { icon: <BarChart2 size={22} />, title: 'Progress Tracking', desc: 'Monitor every issue from report to resolution. Full timeline, government responses, and community upvotes.' },
-  { icon: '🏛️', title: 'Government Direct', desc: 'Reports go directly to the relevant municipal authority. No middlemen — straight to the people who can fix it.' },
+  // { icon: '🏛️', title: 'Government Direct', desc: 'Reports go directly to the relevant municipal authority. No middlemen — straight to the people who can fix it.' },
   { icon: <Camera size={22} />, title: 'Photo Evidence', desc: 'Attach photos and GPS coordinates to every report. Visual proof accelerates government response times.' },
   { icon: <Users size={22} />, title: 'Community Driven', desc: 'Upvote issues your neighbours report. More votes = higher priority. Collective voice drives faster action.' },
 ]
