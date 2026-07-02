@@ -229,8 +229,8 @@ export default function Landing({ navigate }) {
       <section className="section-pad" style={{ background:'#f9fafb', borderTop:'1px solid #e5e7eb', borderBottom:'1px solid #e5e7eb' }}>
         <div className="page-container">
           <div style={{ textAlign:'center', marginBottom:40 }}>
-            <div className="section-label" style={{ marginBottom:8 }}>Why StreetFix</div>
-            <h2>Built for Citizens,<br />Trusted by Government</h2>
+            <div className="section-label" style={{ marginBottom:8 }}>Why RoadWatch</div>
+            <h2>Built for Citizens,<br />Trusted by Citizens</h2>
           </div>
           <div className="features-grid">
             {FEATURES.map(f => (
@@ -288,9 +288,9 @@ export default function Landing({ navigate }) {
       <footer className="footer-bg" style={{ padding:'32px 0', textAlign:'center' }}>
         <div className="page-container">
           <div style={{ fontFamily:'Poppins,sans-serif', fontWeight:700, fontSize:'1.1rem', color:'white', marginBottom:6 }}>
-            Street<span style={{ color:'#ff6b35' }}>Fix</span>
+            Road<span style={{ color:'#ff6b35' }}>Watch</span>
           </div>
-          <p style={{ fontSize:'0.8rem', color:'#9ca3af' }}>Making Indian roads safer, one report at a time. © 2025 StreetFix</p>
+          <p style={{ fontSize:'0.8rem', color:'#9ca3af' }}>Making Indian roads safer, one report at a time. © 2026 RoadWatch</p>
         </div>
       </footer>
 
