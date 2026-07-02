@@ -88,11 +88,11 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           {mode==='signup' && (
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              <div><label className="form-label">First Name *</label><input className="form-input" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Rahul"/></div>
-              <div><label className="form-label">Last Name</label><input className="form-input" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Joshi"/></div>
+              <div><label className="form-label">First Name *</label><input className="form-input" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Manojit"/></div>
+              <div><label className="form-label">Last Name</label><input className="form-input" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Raul"/></div>
             </div>
           )}
-          <div><label className="form-label">Email Address *</label><input className="form-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="rahul@email.com"/></div>
+          <div><label className="form-label">Email Address *</label><input className="form-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="raul@email.com"/></div>
           <div><label className="form-label">Password *</label><input className="form-input" type="password" name="password" value={form.password} onChange={handleChange} placeholder="Min 6 characters"/></div>
           <button className="btn-accent" style={{width:'100%',justifyContent:'center',opacity:loading?0.75:1}} onClick={mode==='login'?handleLogin:handleSignup} disabled={loading}>
             {loading ? '⏳ Please wait...' : mode==='login' ? 'Sign In →' : 'Create Account →'}

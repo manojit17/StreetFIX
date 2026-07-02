@@ -87,8 +87,8 @@ export default function LandingPage({ onOpenAuth }) {
       <section className="section-bg py-20">
         <div className="max-w-6xl mx-auto px-5">
           <div className="text-center mb-12">
-            <div className="text-xs font-semibold text-accent uppercase tracking-widest mb-2">Why StreetFix</div>
-            <h2 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Poppins, sans-serif' }}>Built for Citizens,<br />Trusted by Government</h2>
+            <div className="text-xs font-semibold text-accent uppercase tracking-widest mb-2">Why RoadWatch</div>
+            <h2 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Poppins, sans-serif' }}>Built for Citizens,<br />Trusted by Citizens</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
@@ -114,7 +114,7 @@ export default function LandingPage({ onOpenAuth }) {
             {[
               { n: '01', title: 'Spot the Issue', desc: 'See a pothole or road hazard on your commute.' },
               { n: '02', title: 'File a Report', desc: 'Snap a photo, drop a pin. Under 60 seconds.' },
-              { n: '03', title: 'Notify Authorities', desc: 'Report forwarded automatically to government.' },
+              { n: '03', title: 'Notify Quickly', desc: 'Report Was issued quickly' },
               { n: '04', title: 'Road Gets Fixed', desc: 'Track progress and get notified when repaired.' },
             ].map((s, i) => (
               <div key={i} className="text-center relative z-10">
@@ -134,7 +134,7 @@ export default function LandingPage({ onOpenAuth }) {
             <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Your City. <span className="text-accent">Your Voice.</span>
             </h2>
-            <p className="text-white/70 text-sm mb-7">Join 12,000+ citizens making their roads safer. It's free, fast, and it works.</p>
+            <p className="text-white/70 text-sm mb-7">Join 12,000+ citizens making their roads safer. It's free, fast, and hope it works.</p>
             <div className="flex gap-3 justify-center flex-wrap">
               <button className="btn-accent" onClick={() => onOpenAuth('signup')}>Create Free Account</button>
               <button className="btn-outline-white" onClick={() => navigate('map')}>Explore Issue Map</button>
@@ -147,9 +147,9 @@ export default function LandingPage({ onOpenAuth }) {
       <footer className="footer-bg py-10">
         <div className="max-w-6xl mx-auto px-5 text-center">
           <div className="text-lg font-bold mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Street<span className="text-accent">Fix</span>
+            Road<span className="text-accent">Watch</span>
           </div>
-          <p className="text-sm text-gray-400">Making Indian roads safer, one report at a time. © 2025 StreetFix</p>
+          <p className="text-sm text-gray-400">Making Indian roads safer, one report at a time. © 2025 RoadWatch</p>
         </div>
       </footer>
     </div>

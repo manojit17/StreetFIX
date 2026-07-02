@@ -73,7 +73,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                          display:'grid', placeItems:'center', fontSize:'1rem', color:'white', flexShrink:0 }}>
               🛣️
             </div>
-            <span>Street<span style={{ color:'#ff6b35' }}>Fix</span></span>
+            <span>Road<span style={{ color:'#ff6b35' }}>Watch</span></span>
           </div>
 
           {/* Desktop nav links */}
