@@ -52,9 +52,26 @@ function ReportCard({ report: initialReport, distance, onUpdate }) {
   const { isLoggedIn, showToast } = useApp()
   const [report,       setReport]       = useState(initialReport)
   const [commentOpen,  setCommentOpen]  = useState(false)
+  const [commentCount, setCommentCount] = useState(initialReport.commentCount || 0)
 
   // Keep local state in sync if parent updates (e.g. support toggle)
   useEffect(() => { setReport(initialReport) }, [initialReport])
+
+  // Fetch the real comment count on mount, regardless of whether the
+  // comment section has been opened yet — this is what makes the
+  // "💬 N comments" badge accurate immediately on page load.
+  useEffect(() => {
+    let cancelled = false
+    const fetchCount = async () => {
+      try {
+        const res  = await fetch(`${API}/comments/${initialReport._id}`)
+        const data = await res.json()
+        if (!cancelled && data.success) setCommentCount((data.data || []).length)
+      } catch {}
+    }
+    fetchCount()
+    return () => { cancelled = true }
+  }, [initialReport._id])
 
   const handleSupportUpdate = (updated) => {
     setReport(updated)
@@ -105,7 +122,7 @@ function ReportCard({ report: initialReport, distance, onUpdate }) {
       <div style={{ padding:'10px 16px', borderTop:'1px solid #f3f4f6', borderBottom:'1px solid #f3f4f6',
                     display:'flex', gap:16, fontSize:'0.78rem', color:'#6b7280' }}>
         <span>👍 {report.supporters?.length || 0} supports</span>
-        <span>💬 {report.commentCount || 0} comments</span>
+        <span>💬 {commentCount} comments</span>
       </div>
 
       {/* ── Action buttons ── */}
@@ -131,7 +148,7 @@ function ReportCard({ report: initialReport, distance, onUpdate }) {
       </div>
 
       {/* ── Comment section (expands on click) ── */}
-      <CommentSection reportId={report._id} isOpen={commentOpen} />
+      <CommentSection reportId={report._id} isOpen={commentOpen} onCountChange={setCommentCount} />
     </div>
   )
 }

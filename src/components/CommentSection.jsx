@@ -21,10 +21,12 @@ const timeAgo = (iso) => {
 
 /**
  * Props:
- *  reportId  → the _id of the report this comment section belongs to
- *  isOpen    → boolean — whether the comment section is expanded or collapsed
+ *  reportId      → the _id of the report this comment section belongs to
+ *  isOpen        → boolean — whether the comment section is expanded or collapsed
+ *  onCountChange → optional callback(count) — fired whenever the comment
+ *                  list changes, so the parent card's badge stays in sync
  */
-export default function CommentSection({ reportId, isOpen }) {
+export default function CommentSection({ reportId, isOpen, onCountChange }) {
   const { user, isLoggedIn, showToast } = useApp()
 
   const [comments,     setComments]     = useState([])
@@ -43,7 +45,11 @@ export default function CommentSection({ reportId, isOpen }) {
       try {
         const res  = await fetch(`${API}/comments/${reportId}`)
         const data = await res.json()
-        if (data.success) setComments(data.data || [])
+        if (data.success) {
+          const list = data.data || []
+          setComments(list)
+          onCountChange?.(list.length)
+        }
       } catch {
         showToast('❌', 'Error', 'Could not load comments.')
       } finally {
@@ -75,7 +81,11 @@ export default function CommentSection({ reportId, isOpen }) {
       if (!res.ok) throw new Error(data.message || 'Failed to post comment')
 
       // Add new comment to top of local list instantly
-      setComments(prev => [...prev, data.data])
+      setComments(prev => {
+        const updated = [...prev, data.data]
+        onCountChange?.(updated.length)
+        return updated
+      })
       setText('')
     } catch (err) {
       showToast('❌', 'Error', err.message)
@@ -96,7 +106,11 @@ export default function CommentSection({ reportId, isOpen }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Failed to delete comment')
 
-      setComments(prev => prev.filter(c => c._id !== commentId))
+      setComments(prev => {
+        const updated = prev.filter(c => c._id !== commentId)
+        onCountChange?.(updated.length)
+        return updated
+      })
       showToast('🗑️', 'Deleted', 'Comment removed.')
     } catch (err) {
       showToast('❌', 'Error', err.message)
