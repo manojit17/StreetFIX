@@ -4,10 +4,10 @@ import { useApp } from '../context/AppContext'
 import SupportButton from '../components/SupportButton'
 
 const FEATURES = [
-  { icon:'📍', title:'Real Map Integration', desc:'See every reported issue on an interactive map. Filter by status, type, or location to understand your city road health at a glance.' },
+  { icon:'📍', title:'Location Intelligence', desc: 'Every report is pinned with its exact GPS location, making it easy to discover nearby road issues and understand where problems exist.' },
   { icon:'🔔', title:'Live Notifications', desc:'Get real-time updates when your report changes status. Never wonder if someone is acting on your complaint again.' },
-  { icon:'📊', title:'Progress Tracking', desc:'Monitor every issue from report to resolution. Full timeline, government responses, and community upvotes all in one place.' },
-  { icon:'🏛️', title:'Government Direct', desc:'Reports go directly to the relevant municipal authority. No middlemen, no delays — straight to the people who can fix it.' },
+  { icon:'📊', title:'Issue Transparency', desc: 'Explore trending issues, support counts, verification history, and community activity to understand which road problems need the most attention.' },
+  { icon:'🏛️', title:'Verified by Citizens', desc: 'Help verify nearby road issues by confirming their condition and uploading recent photos. Together, citizens build reliable information for everyone.' },
   { icon:'📸', title:'Photo Evidence', desc:'Attach photos and GPS coordinates to every report. Visual proof accelerates government response times significantly.' },
   { icon:'🌐', title:'Community Driven', desc:'Upvote issues your neighbours report. The more votes, the higher the priority. Collective voice drives faster action.' },
 ]
@@ -15,8 +15,8 @@ const FEATURES = [
 const STEPS = [
   { n:'01', title:'Spot the Issue',     desc:'See a pothole or road hazard on your daily commute.' },
   { n:'02', title:'File a Report',      desc:'Snap a photo, drop a pin, describe the issue. Under 60 seconds.' },
-  { n:'03', title:'Notify Authorities', desc:'Report forwarded automatically to the relevant government body.' },
-  { n:'04', title:'Road Gets Fixed',    desc:'Track progress and get notified when the road is repaired.' },
+  { n:'03', title:'Verify the Issue', desc:'Nearby users confirm the issue by verifying its condition and uploading recent photos, making reports more reliable.' },
+  { n:'04', title:'Raise Awareness',    desc:'Support verified reports and help important road issues gain visibility through collective citizen participation.' },
 ]
 
 const statusColor = (s) => s === 'Resolved' ? '#10b981' : s === 'In Progress' ? '#3b82f6' : '#f59e0b'
