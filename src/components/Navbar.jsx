@@ -1,9 +1,10 @@
-// Navbar.jsx — updated with confirmed nav order:
+// Navbar.jsx — updated with confirmed nav order + live notifications
 // Home | Community | Report Issue | Verify Issues | Dashboard | [🔔] [avatar→Profile]
 import { useState, useEffect } from 'react'
 import { Bell, Menu, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import AuthModal from './AuthModal'
+
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
@@ -22,6 +23,61 @@ export default function Navbar({ currentPage, setCurrentPage }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [authModal,  setAuthModal]  = useState(null)
   const isMobile = useIsMobile(768)
+
+  // ── Live notifications state ────────────────────────────────
+  const [notifs,        setNotifs]        = useState([])
+  const [notifsLoading, setNotifsLoading]  = useState(false)
+  const [unreadCount,   setUnreadCount]    = useState(0)
+
+  // Fetch notifications whenever the panel opens
+  useEffect(() => {
+    if (!notifOpen || !isLoggedIn) return
+    const fetchNotifs = async () => {
+      setNotifsLoading(true)
+      try {
+        const token = localStorage.getItem('sf-token')
+        const res   = await fetch(`${import.meta.env.VITE_API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (data.success) {
+          setNotifs(data.data || [])
+          setUnreadCount((data.data || []).filter(n => !n.read).length)
+        }
+      } catch {}
+      finally { setNotifsLoading(false) }
+    }
+    fetchNotifs()
+  }, [notifOpen, isLoggedIn])
+
+  const handleMarkAllRead = async () => {
+    try {
+      const token = localStorage.getItem('sf-token')
+      await fetch(`${import.meta.env.VITE_API_URL}/notifications/read-all`, {
+        method : 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+      setUnreadCount(0)
+    } catch {}
+  }
+
+  const notifIcon = (type) => {
+    if (type === 'support')       return '👍'
+    if (type === 'comment')       return '💬'
+    if (type === 'verification')  return '✅'
+    if (type === 'status_change') return '🔄'
+    return '🔔'
+  }
+
+  const timeAgo = (iso) => {
+    if (!iso) return ''
+    const mins = Math.floor((Date.now() - new Date(iso)) / 60000)
+    if (mins < 60)  return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24)   return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
 
   // ── CONFIRMED NAV ORDER ──────────────────────────────────────
   // Home | Community | Report Issue | Verify Issues | Dashboard
@@ -98,8 +154,21 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                 aria-label="Notifications"
                 style={{ width:36, height:36, background: notifOpen ? '#f0f4ff' : '#f9fafb',
                          border: `1px solid ${notifOpen ? '#1e3a5f' : '#e5e7eb'}`,
-                         borderRadius:8, display:'grid', placeItems:'center', cursor:'pointer' }}>
+                         borderRadius:8, display:'grid', placeItems:'center',
+                         cursor:'pointer', position:'relative' }}>
                 <Bell size={16} color={notifOpen ? '#1e3a5f' : '#1f2937'} />
+                {/* Red dot — only shows when there are unread notifications */}
+                {unreadCount > 0 && (
+                  <div style={{
+                    position:'absolute', top:6, right:6,
+                    width:8, height:8, borderRadius:'50%',
+                    background:'#ef4444',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:'0.5rem', color:'white', fontWeight:700,
+                  }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </div>
+                )}
               </button>
             </div>
 
@@ -169,15 +238,73 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               zIndex:51, borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.14)',
               background:'#ffffff', overflow:'hidden' }
         }>
+          {/* Panel header */}
           <div style={{ padding:'13px 16px', borderBottom:'1px solid #f3f4f6',
-                        display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <h4 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', margin:0 }}>Notifications</h4>
-            <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }} onClick={closeNotif}>Close</button>
+                        display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+            <h4 style={{ fontFamily:'Poppins,sans-serif', fontSize:'0.92rem', margin:0,
+                        display:'flex', alignItems:'center' }}>
+              Notifications
+              {unreadCount > 0 && (
+                <span style={{ background:'#ef4444', color:'white', borderRadius:20,
+                               padding:'1px 7px', fontSize:'0.7rem', marginLeft:6 }}>
+                  {unreadCount}
+                </span>
+              )}
+            </h4>
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+              {unreadCount > 0 && (
+                <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }}
+                  onClick={handleMarkAllRead}>
+                  Mark all read
+                </button>
+              )}
+              <button className="nav-link btn-sm" style={{ fontSize:'0.76rem' }} onClick={closeNotif}>
+                Close
+              </button>
+            </div>
           </div>
-          <div style={{ padding:'32px 16px', textAlign:'center', color:'#9ca3af' }}>
-            <div style={{ fontSize:'1.8rem', marginBottom:8 }}>🔔</div>
-            <p style={{ fontSize:'0.84rem', fontWeight:500, marginBottom:4 }}>No notifications yet</p>
-            <p style={{ fontSize:'0.76rem' }}>You'll be notified when your report status changes.</p>
+
+          {/* Panel body */}
+          <div style={{ maxHeight:360, overflowY:'auto' }}>
+            {notifsLoading && (
+              <div style={{ padding:24, textAlign:'center', color:'#9ca3af', fontSize:'0.84rem' }}>
+                Loading...
+              </div>
+            )}
+
+            {!notifsLoading && notifs.length === 0 && (
+              <div style={{ padding:'32px 16px', textAlign:'center', color:'#9ca3af' }}>
+                <div style={{ fontSize:'1.8rem', marginBottom:8 }}>🔔</div>
+                <p style={{ fontSize:'0.84rem', fontWeight:500, marginBottom:4 }}>No notifications yet</p>
+                <p style={{ fontSize:'0.76rem' }}>
+                  You'll be notified when someone supports, comments, or verifies your reports.
+                </p>
+              </div>
+            )}
+
+            {!notifsLoading && notifs.map(n => (
+              <div key={n._id}
+                style={{ padding:'11px 16px', borderBottom:'1px solid #f3f4f6',
+                         display:'flex', gap:10, cursor:'pointer',
+                         background: n.read ? '#fff' : 'rgba(30,58,95,0.03)' }}>
+                <div style={{ fontSize:'1.1rem', flexShrink:0, marginTop:2 }}>
+                  {notifIcon(n.type)}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'0.82rem', fontWeight: n.read ? 400 : 600,
+                                marginBottom:2, color:'#111827', lineHeight:1.4 }}>
+                    {n.message}
+                  </div>
+                  <div style={{ fontSize:'0.72rem', color:'#9ca3af' }}>
+                    {timeAgo(n.createdAt)}
+                  </div>
+                </div>
+                {!n.read && (
+                  <div style={{ width:7, height:7, borderRadius:'50%',
+                                background:'#1e3a5f', flexShrink:0, marginTop:5 }} />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
