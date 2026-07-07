@@ -3,10 +3,10 @@ import { CheckCircle, MapPin, Bell, BarChart2, Camera, Users } from 'lucide-reac
 import StatusBadge from '../components/StatusBadge'
 
 const features = [
-  { icon: <MapPin size={22} />, title: 'Real Map Integration', desc: 'See every reported issue on an interactive map. Filter by status, type, or location to understand your city\'s road health.' },
+  { icon: <MapPin size={22} />, title: 'Location Intelligence', desc: 'Every report is pinned with its exact GPS location, making it easy to discover nearby road issues and understand where problems exist.' },
   { icon: <Bell size={22} />, title: 'Live Notifications', desc: 'Get real-time updates when your report changes status. Never wonder if someone\'s acting on your complaint.' },
-  { icon: <BarChart2 size={22} />, title: 'Progress Tracking', desc: 'Monitor every issue from report to resolution. Full timeline, government responses, and community upvotes.' },
-  { icon: '🏛️', title: 'Government Direct', desc: 'Reports go directly to the relevant municipal authority. No middlemen — straight to the people who can fix it.' },
+  { icon: <BarChart2 size={22} />, title: 'Issue Transparency', desc: 'Explore trending issues, support counts, verification history, and community activity to understand which road problems need the most attention.' },
+  { icon: '🏛️', title: 'Verified by Citizens', desc: 'Help verify nearby road issues by confirming their condition and uploading recent photos. Together, citizens build reliable information for everyone.' },
   { icon: <Camera size={22} />, title: 'Photo Evidence', desc: 'Attach photos and GPS coordinates to every report. Visual proof accelerates government response times.' },
   { icon: <Users size={22} />, title: 'Community Driven', desc: 'Upvote issues your neighbours report. More votes = higher priority. Collective voice drives faster action.' },
 ]
