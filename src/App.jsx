@@ -10,6 +10,7 @@ import IssueMap from './pages/IssueMap'
 import Profile from './pages/Profile'
 import Community from './pages/Community'
 import VerifyIssues from './pages/VerifyIssues'
+import AdminPanel from './pages/AdminPanel'
 
 export default function App() {
   const [page, setPage] = useState('landing')
@@ -17,6 +18,15 @@ export default function App() {
   const navigate = (p) => {
     setPage(p)
     window.scrollTo(0, 0)
+  }
+
+  const isAdmin = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('sf-user'))
+      return user?.role === 'admin'
+    } catch {
+      return false
+    }
   }
 
  const renderPage = () => {
@@ -28,6 +38,9 @@ export default function App() {
     case 'profile'  : return <Profile   navigate={navigate} />
     case 'community': return <Community navigate={navigate} />
     case 'verify'   : return <VerifyIssues navigate={navigate} />
+    case 'admin'    : return isAdmin()
+      ? <AdminPanel navigate={navigate} />
+      : <Landing navigate={navigate} />
     default         : return <Landing   navigate={navigate} />
   }
 

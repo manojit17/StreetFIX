@@ -87,6 +87,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
     { id:'report',   label:'Report Issue'  },
     { id:'verify',   label:'Verify Issues' },
     { id:'dashboard',label:'Dashboard'     },
+    ...(user?.role === 'admin' ? [{ id:'admin', label:'Admin' }] : []),
   ]
 
   const navigate = (page) => {
@@ -210,7 +211,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
                     Sign In
                   </button>
                 )}
-                <button className="btn-accent btn-sm" onClick={() => setAuthModal('signup')}>
+                <button className="btn-accent btn-sm" onClick={() => setAuthModal('choose')}>
                   {isMobile ? 'Start' : 'Get Started'}
                 </button>
               </>
@@ -347,7 +348,7 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               <button className="btn-outline" style={{ flex:1, justifyContent:'center' }}
                 onClick={() => { setAuthModal('login'); setMobileOpen(false) }}>Sign In</button>
               <button className="btn-accent" style={{ flex:1, justifyContent:'center' }}
-                onClick={() => { setAuthModal('signup'); setMobileOpen(false) }}>Get Started</button>
+                onClick={() => { setAuthModal('choose'); setMobileOpen(false) }}>Get Started</button>
             </div>
           )}
         </div>
